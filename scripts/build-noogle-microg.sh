@@ -64,7 +64,7 @@ done
 
 apk_count=$(ls "$apk_dir/com.google.android.gms"* "$apk_dir/com.android.vending"* "$apk_dir/com.google.android.gsf"* 2>/dev/null | wc -l)
 if [ "$apk_count" -lt 3 ]; then
-	echo "[E] Missing one or more required APKs in $apk_dir/, download them from https://microg.org/download.html"
+	echo "[E] Missing one or more required APKs in $apk_dir/, use ./download-apks.sh to download them or do it manually"
 	exit 1
 elif [ "$apk_count" -gt 3 ]; then
 	echo "[E] Too many APKs, the $apk_dir/ directory must contain exactly 3 APK files"
