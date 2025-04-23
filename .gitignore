@@ -1,5 +1,6 @@
 *.apk
 *.zip
+/apk
 /dist
 /logs
 /module-*
