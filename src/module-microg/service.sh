@@ -1,11 +1,19 @@
 MODDIR=${0%/*}
 . "$MODDIR/common.sh"
 
-# Grant microG permissions once after install, Action button repeats it when needed
-[ -f "$MODDIR/permissions-granted" ] && exit 0
 until [ "$(getprop sys.boot_completed)" = 1 ]; do sleep 5; done
+
 # pm passes its output fd to system_server, which can't write to module files, so capture through a pipe
-if log="$(grant_microg_permissions 2>&1)"; then
-	touch "$MODDIR/permissions-granted"
+# Google updates can land between module install and reboot (e.g. Play Store self-update), remove them on every boot
+log="$(remove_package_updates google 2>&1)"
+
+# Grant microG permissions once after install, Action button repeats it when needed
+if [ ! -f "$MODDIR/permissions-granted" ]; then
+	if grant_log="$(grant_microg_permissions 2>&1)"; then
+		touch "$MODDIR/permissions-granted"
+	fi
+	log="$log
+
+$grant_log"
 fi
 echo "$log" > "$MODDIR/service.log"

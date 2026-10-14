@@ -10,8 +10,9 @@ remove_package_updates() {
 	for package in $packages; do
 		# Check if package update from Google version is installed
 		path=$(pm path "$package" | grep "/data/app/" | sed -E 's/package:(\/data\/app\/[^/]+).*/\1/' | uniq)
+		# Only active package counts, hidden system package after it may be microG while update is Google's
 		# grep reads whole output, early exit (-q) makes dumpsys print broken pipe errors
-		microg_type=$(pm dump "$package" | grep 'FAKE_PACKAGE_SIGNATURE' > /dev/null && echo "true" || echo "false")
+		microg_type=$(pm dump "$package" | sed '/Hidden system packages:/,$d' | grep 'FAKE_PACKAGE_SIGNATURE' > /dev/null && echo "true" || echo "false")
 		if [ -n "$path" ]; then
 			if [ "$microg_type" = "true" ]; then
 				if [ "$filter" = "google" ]; then
