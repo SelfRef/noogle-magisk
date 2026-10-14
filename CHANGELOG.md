@@ -1,3 +1,11 @@
+# Unreleased
+- Requires Magisk v29.0+
+- Updated privileged permissions for current microG (fixes bootloop with microG 0.3.12+)
+- Google apps to remove are detected on device instead of fixed paths (fixes Google Services Framework not removed)
+- microG permissions are granted automatically on first boot
+- Extract only native libraries needed by device
+- Fixed Action button when run from other directory
+
 # v2.1
 - Prevent uninstall microG updates during self-check (Action button in Magisk)
 

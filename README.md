@@ -11,7 +11,7 @@ Noogle Debloat [WIP] | Removes other Google system apps from Android (still can 
 
 ## Install
 
-It requires Magisk to be installed obviously as it's a Magisk module. If you don't have it yet, consult the [official installation instructions](https://topjohnwu.github.io/Magisk/install.html).
+It requires Magisk v29.0 or newer. If you don't have it yet, consult the [official installation instructions](https://topjohnwu.github.io/Magisk/install.html).
 
 > [!TIP]
 > It's a good idea to enable ADB debugging as well before installing in case of any issues.
@@ -19,14 +19,12 @@ It requires Magisk to be installed obviously as it's a Magisk module. If you don
 1. Download latest version from [releases](https://github.com/SelfRef/noogle-magisk/releases)
     - Or [build it yourself](#build)
 2. Install through Magisk app
-3. Reboot
-4. In Magisk click "Action" button next to module to grant permissions
-    - Or open microG app and grant them through Self-Check
-5. Ensure all permission boxes are checked in Self-Check
-    - If not, tap them to set the correct option
-6. Check signature spoofing status at the top
+3. Reboot, microG permissions are granted automatically on first boot
+4. Ensure all permission boxes are checked in microG Self-Check
+    - If not, click "Action" button next to module in Magisk to grant them again, or tap them in Self-Check
+5. Check signature spoofing status at the top of Self-Check
     - If your ROM doesn't support signature spoofing, you must add it: [check troubleshooting](#signatures-are-not-correct)
-7. If you have issues with microG crashing, install microG as user apps: [check troubleshooting](#microg-crashing)
+6. If you have issues with microG crashing, install microG as user apps: [check troubleshooting](#microg-crashing)
 
 ## Build
 
