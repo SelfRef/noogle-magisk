@@ -1,4 +1,5 @@
-source ./common.sh
+MODDIR="$(dirname "$0")"
+. "$MODDIR/common.sh"
 
 echo "[P] Module self-check..."
 
