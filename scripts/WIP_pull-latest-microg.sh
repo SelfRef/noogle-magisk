@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 repo_url=https://microg.org/fdroid/repo
 apk_dir=apk

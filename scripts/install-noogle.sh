@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 module_version="$(grep '^version=' src/module-microg/module.prop | cut -d'=' -f2)"
 
