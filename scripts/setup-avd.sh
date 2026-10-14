@@ -33,7 +33,7 @@ show_help() {
 	echo "Sets up, roots (Magisk via rootAVD) and starts the emulator. Safe to re-run."
 	echo "Options:"
 	echo "  -h            Show this help message"
-	echo "  -v <version>  Android version [11|12|12L|13|14|15|16] (default: 15)"
+	echo "  -v <version>  Android version [11|12|12L|13|14|15|16|17] (default: 15)"
 	echo "  -n <name>     AVD name (default: noogle-<version>)"
 	echo "  -H            Run headless (no window)"
 	echo "  -S            Save running emulator state as '$snapshot' snapshot"
@@ -68,6 +68,7 @@ case $android_version in
 	14) api=34 ;;
 	15) api=35 ;;
 	16) api=36 ;;
+	17) api=37.0 ;;
 	*)
 		echo "[C] Unsupported Android version: $android_version"
 		show_help 1
