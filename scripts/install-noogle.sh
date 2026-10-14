@@ -8,6 +8,7 @@ module_filename="noogle-microg-$module_version.zip"
 skip_confirmations=false
 build_args=()
 
+# $1: exit code
 show_help() {
 	echo "Usage: $0 [options]"
 	echo "Builds module, installs it with Magisk through ADB and reboots the device."
@@ -16,7 +17,7 @@ show_help() {
 	echo "  -y            Don't ask for confirmations"
 	echo "  -d <dir>      Passed to build: destination partition [system|product|system_ext]"
 	echo "  -s <suffix>   Passed to build: suffix added to app directories and APK names"
-	exit 0
+	exit "${1:-0}"
 }
 
 while getopts "hyd:s:" opt; do
@@ -24,23 +25,29 @@ while getopts "hyd:s:" opt; do
 		h) show_help ;;
 		y) skip_confirmations=true ;;
 		d|s) build_args+=("-$opt" "$OPTARG") ;;
-		*) show_help ;;
+		*) show_help 1 ;;
 	esac
 done
 
 # $1: question
 confirm() {
-	[ "$skip_confirmations" = true ] || read -rp "[?] $1 [Enter to continue, Ctrl+C to abort] "
+	[ "$skip_confirmations" = true ] || read -rp "[I] $1 [Enter to continue, Ctrl+C to abort] "
 }
 
 ./scripts/build-noogle-microg.sh "${build_args[@]}"
 
 confirm "Install $module_filename on $(adb get-serialno)?"
 echo "[P] Installing module..."
-adb push "dist/$module_filename" /sdcard/
-adb shell su -c "magisk --install-module /sdcard/$module_filename"
+start=$SECONDS
+adb push -q "dist/$module_filename" /sdcard/
+if ! adb shell su -c "magisk --install-module /sdcard/$module_filename"; then
+	adb shell rm "/sdcard/$module_filename"
+	echo "[P!] Could not install module"
+	exit 1
+fi
 adb shell rm "/sdcard/$module_filename"
+echo "[P+][$((SECONDS - start))s] Module installed"
 
 confirm "Reboot?"
-echo "[P] Rebooting..."
+echo "[I] Rebooting device"
 adb reboot

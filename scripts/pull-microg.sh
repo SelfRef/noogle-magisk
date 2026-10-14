@@ -14,12 +14,13 @@ show_help() {
 	echo "Pulls latest microG APKs into $apk_dir/, skips ones already pulled and verified."
 	echo "Options:"
 	echo "  -h          Show this help message"
-	exit 0
+	exit "${1:-0}"
 }
 
 while getopts "h" opt; do
 	case $opt in
-		*) show_help ;;
+		h) show_help ;;
+		*) show_help 1 ;;
 	esac
 done
 
@@ -31,38 +32,45 @@ trap 'rm -f "$tmp"' EXIT
 download() {
 	for attempt in $(seq $attempts); do
 		echo "[P] Pulling ${3##*/} (attempt $attempt/$attempts)..."
+		start=$SECONDS
 		if curl -fL --progress-bar "$1" -o "$tmp" && sha256sum -c --status <<< "$2  $tmp"; then
 			chmod 644 "$tmp"
 			mv "$tmp" "$3"
+			echo "[P+][$((SECONDS - start))s] Pulled and verified ${3##*/}"
 			return
 		fi
+		echo "[P!][$((SECONDS - start))s] Download failed or checksum mismatch, probably rate limited"
 		[ "$attempt" -lt $attempts ] || break
-		echo "[W] Download failed or checksum mismatch, probably rate limited. Retrying in $((wait_time * attempt))s..."
+		echo "[I] Retrying in $((wait_time * attempt))s"
 		sleep $((wait_time * attempt))
 	done
-	echo "[E] Failed to pull ${3##*/}. Try again later or download manually from https://microg.org/download.html"
+	echo "[C] Failed to pull ${3##*/}. Try again later or download manually from https://microg.org/download.html"
 	exit 1
 }
 
 mkdir -p "$apk_dir"
 
 echo "[P] Fetching repo index..."
-curl -fsSL --retry $attempts --retry-delay $wait_time --retry-all-errors "$repo_url/index-v2.json" -o "$tmp"
+if ! curl -fsSL --retry $attempts --retry-delay $wait_time --retry-all-errors "$repo_url/index-v2.json" -o "$tmp"; then
+	echo "[P!] Could not fetch repo index"
+	exit 1
+fi
 index="$(cat "$tmp")"
+echo "[P+] Repo index fetched"
 
 for pkg in "${packages[@]}"; do
 	read -r name sha256 version < <(jq -r --arg p "$pkg" '.packages[$p].versions // {} | to_entries
 		| max_by(.value.manifest.versionCode) // empty | .value
 		| "\(.file.name) \(.file.sha256) \(.manifest.versionName)"' <<< "$index")
 	if [ -z "$name" ]; then
-		echo "[E] $pkg not found in repo index"
+		echo "[C] $pkg not found in repo index"
 		exit 1
 	fi
 	echo "[I] $pkg: latest $version"
 
 	apk="$apk_dir/${name#/}"
 	if [ -f "$apk" ] && sha256sum -c --status <<< "$sha256  $apk"; then
-		echo "[I] Already pulled and verified, skipping"
+		echo "[I] Already pulled and verified"
 	else
 		download "$repo_url$name" "$sha256" "$apk"
 	fi
