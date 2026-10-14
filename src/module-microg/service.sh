@@ -1,19 +1,11 @@
 MODDIR=${0%/*}
-source "$MODDIR/common.sh"
+. "$MODDIR/common.sh"
 
-log_path=/data/adb/noogle-microg.log
-echo "[I] Starting noogle-microg boot script." > "$log_path"
-
-# Wait for system to be ready
-resetprop -w sys.boot_completed 0
-
-MODDIR=${0%/*}
-source "$MODDIR/common.sh"
-
-# Ensure Google updates are not installed
-# remove_package_updates google >> "$log_path" 2>&1
-
-# Doesn't work for some reason, needs manual interaction
-# grant_microg_permissions >> "$log_path" 2>&1
-
-echo "[I] Finished noogle-microg boot script." >> "$log_path" 2>&1
+# Grant microG permissions once after install, Action button repeats it when needed
+[ -f "$MODDIR/permissions-granted" ] && exit 0
+until [ "$(getprop sys.boot_completed)" = 1 ]; do sleep 5; done
+# pm passes its output fd to system_server, which can't write to module files, so capture through a pipe
+if log="$(grant_microg_permissions 2>&1)"; then
+	touch "$MODDIR/permissions-granted"
+fi
+echo "$log" > "$MODDIR/service.log"

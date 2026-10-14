@@ -76,9 +76,6 @@ gms_dir="$destination_dir/priv-app/GmsCore$suffix"
 sed -i "1i gms_path=$gms_dir/GmsCore$suffix.apk" "$module_dir/customize.sh"
 sed -i "1i gms_dir=$gms_dir" "$module_dir/customize.sh"
 
-echo "[I] Removing service script (doesn't work)"
-rm -f "$module_dir/service.sh"
-
 mkdir -p "$dist_dir"
 rm -f "$dist_dir/$module_filename"
 (cd "$module_dir" && zip -q -r "../$dist_dir/$module_filename" . -x '*.gitkeep')
