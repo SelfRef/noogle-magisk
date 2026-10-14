@@ -254,7 +254,8 @@ magisk_additional_setup() {
 	echo "[P] Running Magisk additional setup..."
 	start=$SECONDS
 	boot_id="$(adb shell cat /proc/sys/kernel/random/boot_id)"
-	adb shell pm grant com.topjohnwu.magisk android.permission.POST_NOTIFICATIONS
+	# Notification permission prompt would cover the dialog, permission exists since Android 13
+	adb shell pm grant com.topjohnwu.magisk android.permission.POST_NOTIFICATIONS 2> /dev/null || true
 	open_magisk
 	if ! tap_node 'text="OK"' 60; then
 		echo "[P!] Additional setup dialog didn't show up"
