@@ -1,5 +1,18 @@
 #!/usr/bin/env bash
 # Sets up a Magisk-rooted Android emulator (Google Play image) for testing modules. Arch Linux only.
+#
+# Workflow: run without options (fully unattended, ~3 min first time), save clean state with -S,
+# test with install-noogle.sh, go back with -r. With a real device connected too: export ANDROID_SERIAL=emulator-5554
+# Logs: logs/emulator-<avd>.log, logs/rootavd.log. SDK in ~/Android/Sdk, rootAVD in ~/.cache/rootAVD.
+#
+# Notes:
+# - Google Play image is a user build: no adb root, Play Services preinstalled like on stock phones.
+# - Only one adb version may exist, emulator runs SDK platform-tools adb on its own. Mismatch restarts adb server,
+#   devices go offline mid-transfer and rootAVD silently ends up without patched ramdisk.
+# - rootAVD patches the system image shared by all AVDs of that Android version, not the AVD itself.
+# - Magisk su prompt is hidden from uiautomator, it can't be tapped. Other Magisk UI can (see tap_node).
+# - UI can be inspected with: adb exec-out uiautomator dump /dev/tty, adb exec-out screencap -p > screen.png
+# - In Magisk DB policies, shell is uid 2000: adb shell "su -c \"magisk --sqlite 'SELECT * FROM policies'\""
 
 set -e
 
