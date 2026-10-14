@@ -24,6 +24,7 @@ port=5554
 snapshot=clean
 sdk_dir="${ANDROID_HOME:-$HOME/Android/Sdk}"
 rootavd_dir="${XDG_CACHE_HOME:-$HOME/.cache}/rootAVD"
+magisk_apk="${XDG_CACHE_HOME:-$HOME/.cache}/noogle-magisk.apk"
 log_dir=logs
 magisk_release=latest
 
@@ -202,18 +203,20 @@ root_image() {
 		| grep -o 'https://[^"]*/Magisk-v[^"]*\.apk' | head -n 1)"
 	echo "[P] Downloading ${magisk_url##*/}..."
 	start=$SECONDS
-	curl -fL --progress-bar "$magisk_url" -o "$rootavd_dir/Magisk.zip"
+	curl -fL --progress-bar "$magisk_url" -o "$magisk_apk"
+	cp "$magisk_apk" "$rootavd_dir/Magisk.zip"
 	echo "[P+][$((SECONDS - start))s] Downloaded ${magisk_url##*/}"
 
 	# rootAVD sometimes fails to pull patched ramdisk back (adb transfer drops), so retry
 	for attempt in 1 2 3; do
 		start_emulator
 		echo "[P] Rooting image with rootAVD, attempt $attempt/3 (log: $log_dir/rootavd.log)..."
-		start=$SECONDS
+		root_start=$SECONDS
 		# stdin from /dev/null makes rootAVD take the default menu choices without prompting
-		(cd "$rootavd_dir" && bash rootAVD.sh "$image_path/ramdisk.img" < /dev/null) > "$log_dir/rootavd.log" 2>&1
-		# rootAVD shuts the emulator down when done
-		while is_running; do sleep 1; done
+		# It hangs on installing Magisk app when device drops offline after pulling ramdisk, app is installed later anyway
+		(cd "$rootavd_dir" && timeout 300 bash rootAVD.sh "$image_path/ramdisk.img" < /dev/null) > "$log_dir/rootavd.log" 2>&1 || true
+		# rootAVD shuts the emulator down when done, unless it hung
+		kill_emulator > /dev/null
 		[ -f "$ramdisk" ] && break
 		# rootAVD ignores failed pulls, leaving no ramdisk at all
 		mv "$ramdisk.backup" "$ramdisk"
@@ -223,7 +226,7 @@ root_image() {
 			exit 1
 		fi
 	done
-	echo "[P+][$((SECONDS - start))s] Image rooted"
+	echo "[P+][$((SECONDS - root_start))s] Image rooted"
 	rooted_now=true
 }
 
@@ -256,6 +259,11 @@ open_magisk() {
 
 # Magisk app asks for additional setup on first launch and reboots after it
 magisk_additional_setup() {
+	if ! adb shell pm path com.topjohnwu.magisk > /dev/null 2>&1; then
+		echo "[P] Installing Magisk app..."
+		adb install "$magisk_apk" > /dev/null
+		echo "[P+] Magisk app installed"
+	fi
 	adb shell command -v su > /dev/null 2>&1 && return 0
 	echo "[P] Running Magisk additional setup..."
 	start=$SECONDS
