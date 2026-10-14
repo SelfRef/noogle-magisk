@@ -13,6 +13,7 @@ sdk_dir="${ANDROID_HOME:-$HOME/Android/Sdk}"
 rootavd_dir="${XDG_CACHE_HOME:-$HOME/.cache}/rootAVD"
 log_dir=logs
 
+# $1: exit code
 show_help() {
 	echo "Usage: $0 [options]"
 	echo "Sets up, roots (Magisk via rootAVD) and starts the emulator. Safe to re-run."
@@ -26,7 +27,7 @@ show_help() {
 	echo "  -R            Recreate: delete AVD, unroot image and set everything up again"
 	echo "  -k            Kill running emulator"
 	echo "After first setup save clean state with -S, so -r can restore it."
-	exit 0
+	exit "${1:-0}"
 }
 
 while getopts "hv:n:HSrRk" opt; do
@@ -39,7 +40,7 @@ while getopts "hv:n:HSrRk" opt; do
 		r) action=reset ;;
 		R) action=recreate ;;
 		k) action=kill ;;
-		*) show_help ;;
+		*) show_help 1 ;;
 	esac
 done
 
@@ -52,8 +53,8 @@ case $android_version in
 	15) api=35 ;;
 	16) api=36 ;;
 	*)
-		echo "[E] Unsupported Android version: $android_version"
-		show_help
+		echo "[C] Unsupported Android version: $android_version"
+		show_help 1
 		;;
 esac
 
@@ -65,7 +66,6 @@ avd_dir="${ANDROID_AVD_HOME:-$HOME/.android/avd}/$avd_name.avd"
 
 export ANDROID_HOME="$sdk_dir"
 export ANDROID_SERIAL="emulator-$port"
-# adb comes from android-tools, mixing it with SDK platform-tools adb restarts the server and drops devices
 export PATH="$sdk_dir/cmdline-tools/latest/bin:$sdk_dir/emulator:$PATH"
 
 is_running() {
@@ -75,14 +75,18 @@ is_running() {
 kill_emulator() {
 	is_running || return 0
 	echo "[P] Stopping emulator $avd_name..."
+	start=$SECONDS
 	adb emu kill > /dev/null 2>&1 || true
 	while is_running; do sleep 1; done
+	echo "[P+][$((SECONDS - start))s] Emulator stopped"
 }
 
+# Starts emulator if not running and waits for boot
 # $@: extra emulator args
 start_emulator() {
+	start=$SECONDS
 	if is_running; then
-		echo "[I] Emulator $avd_name already running"
+		echo "[P] Waiting for emulator $avd_name to boot..."
 	else
 		echo "[P] Starting emulator $avd_name (log: $log_dir/emulator-$avd_name.log)..."
 		mkdir -p "$log_dir"
@@ -91,17 +95,16 @@ start_emulator() {
 		nohup emulator "${args[@]}" \
 			> "$log_dir/emulator-$avd_name.log" 2>&1 &
 	fi
-	echo "[P] Waiting for boot..."
 	until [ "$(adb shell getprop sys.boot_completed 2> /dev/null | tr -d '\r')" = 1 ]; do
-		is_running || { echo "[E] Emulator exited, check $log_dir/emulator-$avd_name.log"; exit 1; }
+		is_running || { echo "[P!] Emulator exited, check $log_dir/emulator-$avd_name.log"; exit 1; }
 		sleep 2
 	done
-	echo "[I] Booted ($ANDROID_SERIAL)"
+	echo "[P+][$((SECONDS - start))s] Emulator booted ($ANDROID_SERIAL)"
 }
 
 install_deps() {
 	if [ ! -w /dev/kvm ]; then
-		echo "[E] /dev/kvm not accessible. Enable virtualization or run: sudo usermod -aG kvm $USER"
+		echo "[C] /dev/kvm not accessible. Enable virtualization or run: sudo usermod -aG kvm $USER"
 		exit 1
 	fi
 
@@ -109,12 +112,14 @@ install_deps() {
 	command -v java > /dev/null || deps+=(jre-openjdk-headless)
 	mapfile -t missing < <(pacman -T "${deps[@]}")
 	if [ ${#missing[@]} -gt 0 ]; then
-		echo "[P] Installing packages: ${missing[*]}"
+		echo "[P] Installing packages: ${missing[*]}..."
 		sudo pacman -S --needed "${missing[@]}"
+		echo "[P+] Packages installed"
 	fi
 
 	if [ ! -x "$sdk_dir/cmdline-tools/latest/bin/sdkmanager" ]; then
 		echo "[P] Installing Android cmdline-tools to $sdk_dir..."
+		start=$SECONDS
 		zip_name="$(curl -fsSL https://dl.google.com/android/repository/repository2-3.xml \
 			| grep -o 'commandlinetools-linux-[0-9]*_latest.zip' | sort -V | tail -n 1)"
 		tmp_dir="$(mktemp -d)"
@@ -124,20 +129,38 @@ install_deps() {
 		rm -rf "$sdk_dir/cmdline-tools/latest"
 		mv "$tmp_dir/cmdline-tools" "$sdk_dir/cmdline-tools/latest"
 		rm -rf "$tmp_dir"
+		echo "[P+][$((SECONDS - start))s] Installed $zip_name"
 	fi
 
 	if [ ! -f "$ramdisk" ] || [ ! -x "$sdk_dir/emulator/emulator" ]; then
 		echo "[P] Installing emulator and $image_pkg..."
+		start=$SECONDS
 		yes | sdkmanager --licenses > /dev/null
 		sdkmanager --install emulator "$image_pkg"
+		echo "[P+][$((SECONDS - start))s] Emulator and system image installed"
+	fi
+
+	# Emulator requires SDK platform-tools and runs its adb too, two adb versions keep restarting the server and drop devices
+	if [ "$(readlink "$sdk_dir/platform-tools/adb")" != /usr/bin/adb ]; then
+		echo "[P] Replacing SDK platform-tools with android-tools adb..."
+		rm -rf "$sdk_dir/platform-tools"
+		mkdir -p "$sdk_dir/platform-tools"
+		ln -s /usr/bin/adb "$sdk_dir/platform-tools/adb"
+		echo "[P+] SDK platform-tools adb linked to /usr/bin/adb"
 	fi
 
 	if [ -d "$rootavd_dir" ]; then
+		echo "[P] Updating rootAVD..."
 		# Reset first, root_image overwrites the bundled Magisk.zip
-		git -C "$rootavd_dir" reset -q --hard && git -C "$rootavd_dir" pull -q || echo "[W] Could not update rootAVD, using existing copy"
+		if git -C "$rootavd_dir" reset -q --hard && git -C "$rootavd_dir" pull -q; then
+			echo "[P+] rootAVD updated"
+		else
+			echo "[P!] Could not update rootAVD, using existing copy"
+		fi
 	else
 		echo "[P] Cloning rootAVD..."
 		git clone -q --depth 1 https://gitlab.com/newbit/rootAVD.git "$rootavd_dir"
+		echo "[P+] rootAVD cloned"
 	fi
 }
 
@@ -148,6 +171,7 @@ create_avd() {
 	fi
 	echo "[P] Creating AVD $avd_name (Android $android_version, API $api)..."
 	echo no | avdmanager create avd -n "$avd_name" -k "$image_pkg" -d pixel_6
+	echo "[P+] AVD created"
 }
 
 # rootAVD patches the shared system image ramdisk and keeps the stock one as ramdisk.img.backup
@@ -160,40 +184,101 @@ root_image() {
 	magisk_url="$(curl -fsSL https://api.github.com/repos/topjohnwu/Magisk/releases/latest \
 		| grep -o 'https://[^"]*/Magisk-v[^"]*\.apk' | head -n 1)"
 	echo "[P] Downloading ${magisk_url##*/}..."
+	start=$SECONDS
 	curl -fL --progress-bar "$magisk_url" -o "$rootavd_dir/Magisk.zip"
+	echo "[P+][$((SECONDS - start))s] Downloaded ${magisk_url##*/}"
 
 	start_emulator
-	echo "[P] Rooting image with rootAVD..."
+	echo "[P] Rooting image with rootAVD (log: $log_dir/rootavd.log)..."
+	start=$SECONDS
 	# stdin from /dev/null makes rootAVD take the default menu choices without prompting
-	(cd "$rootavd_dir" && bash rootAVD.sh "$image_path/ramdisk.img" < /dev/null)
-	echo "[P] Waiting for emulator to shut down..."
+	(cd "$rootavd_dir" && bash rootAVD.sh "$image_path/ramdisk.img" < /dev/null) > "$log_dir/rootavd.log" 2>&1
+	# rootAVD shuts the emulator down when done
 	while is_running; do sleep 1; done
 	# rootAVD ignores failed pulls, leaving no ramdisk at all
 	if [ ! -f "$ramdisk" ]; then
 		mv "$ramdisk.backup" "$ramdisk"
-		echo "[E] rootAVD failed to pull patched ramdisk, stock one restored. Re-run to try again."
+		echo "[P!] rootAVD failed to pull patched ramdisk, stock one restored. Check $log_dir/rootavd.log and re-run."
 		exit 1
 	fi
+	echo "[P+][$((SECONDS - start))s] Image rooted"
 	rooted_now=true
 }
 
-# Magisk app completes its environment on first launch and reboots
-finish_magisk_setup() {
-	echo "[P] Launching Magisk app to finish setup..."
-	boot_id="$(adb shell cat /proc/sys/kernel/random/boot_id)"
-	adb shell pm grant com.topjohnwu.magisk android.permission.POST_NOTIFICATIONS
-	adb shell monkey -p com.topjohnwu.magisk -c android.intent.category.LAUNCHER 1 > /dev/null
-	echo "[P] Waiting for Magisk to reboot..."
-	for _ in $(seq 60); do
-		[ "$(adb shell cat /proc/sys/kernel/random/boot_id 2> /dev/null)" != "$boot_id" ] && break
+# Taps first UI node matching regex once it shows up on screen
+# $1: regex for node attributes (case insensitive), $2: timeout in seconds
+tap_node() {
+	end=$((SECONDS + $2))
+	while [ $SECONDS -lt "$end" ]; do
+		# Last 4 numbers of node are its bounds: [x1,y1][x2,y2]
+		read -r x1 y1 x2 y2 <<< "$(adb exec-out uiautomator dump /dev/tty 2> /dev/null \
+			| grep -oE '<node [^>]*>' | grep -iE "$1" | head -n 1 | grep -oE '[0-9]+' | tail -n 4 | tr '\n' ' ')"
+		if [ -n "$y2" ]; then
+			adb shell input tap $(((x1 + x2) / 2)) $(((y1 + y2) / 2))
+			return 0
+		fi
+		sleep 1
+	done
+	return 1
+}
+
+# Launching right after boot doesn't always bring the app to front, so check focus and retry
+open_magisk() {
+	for _ in $(seq 10); do
+		adb shell am start -W -n com.topjohnwu.magisk/.ui.MainActivity > /dev/null 2>&1 || true
+		adb shell dumpsys window | grep -q 'mCurrentFocus=.*com.topjohnwu.magisk' && return 0
 		sleep 2
 	done
-	start_emulator
-	if [ "$(adb shell su -c id -u 2> /dev/null | tr -d '\r')" = 0 ]; then
-		echo "[I] Root works. Save clean state: $0 -v $android_version -S"
-	else
-		echo "[W] No root in adb shell. Open Magisk app, finish setup and grant Shell root, then save clean state: $0 -v $android_version -S"
+	return 1
+}
+
+# Magisk app asks for additional setup on first launch and reboots after it
+magisk_additional_setup() {
+	adb shell command -v su > /dev/null 2>&1 && return 0
+	echo "[P] Running Magisk additional setup..."
+	start=$SECONDS
+	boot_id="$(adb shell cat /proc/sys/kernel/random/boot_id)"
+	adb shell pm grant com.topjohnwu.magisk android.permission.POST_NOTIFICATIONS
+	open_magisk
+	if ! tap_node 'text="OK"' 60; then
+		echo "[P!] Additional setup dialog didn't show up"
+		return 0
 	fi
+	# adb returns nothing while device goes down, only new boot id means reboot happened
+	for _ in $(seq 60); do
+		new_boot_id="$(adb shell cat /proc/sys/kernel/random/boot_id 2> /dev/null || true)"
+		[ -n "$new_boot_id" ] && [ "$new_boot_id" != "$boot_id" ] && break
+		sleep 2
+	done
+	echo "[P+][$((SECONDS - start))s] Additional setup done, rebooted"
+	start_emulator
+}
+
+# adb shell su prompts in Magisk app, which is hidden from uiautomator so it can't be granted there
+# Unanswered prompt saves a deny for Shell instead, which can be flipped in Superuser tab
+grant_shell_root() {
+	echo "[P] Granting root to adb shell..."
+	grant_start=$SECONDS
+	su_out="$(mktemp)"
+	# Right after boot su can be rejected before prompting, so retry
+	for _ in 1 2 3; do
+		# Returns at once when already granted, otherwise waits for prompt to time out
+		adb shell su -c id -u > "$su_out" 2> /dev/null || true
+		[ "$(tr -d '\r' < "$su_out")" = 0 ] && break
+		open_magisk
+		tap_node 'content-desc="Superuser"' 30 && tap_node 'checkable="true" checked="false"' 10 || true
+		adb shell input keyevent HOME
+		adb shell su -c id -u > "$su_out" 2> /dev/null || true
+		[ "$(tr -d '\r' < "$su_out")" = 0 ] && break
+	done
+
+	if [ "$(tr -d '\r' < "$su_out")" = 0 ]; then
+		echo "[P+][$((SECONDS - grant_start))s] adb shell has root"
+	else
+		echo "[P!] No root in adb shell"
+		echo "[W] Open Magisk app, finish setup and grant Shell root"
+	fi
+	rm -f "$su_out"
 }
 
 case $action in
@@ -201,14 +286,23 @@ case $action in
 		kill_emulator
 		;;
 	save)
-		is_running || { echo "[E] Emulator $avd_name is not running"; exit 1; }
+		if ! is_running; then
+			echo "[C] Emulator $avd_name is not running"
+			exit 1
+		fi
 		echo "[P] Saving snapshot '$snapshot'..."
-		adb emu avd snapshot save "$snapshot"
+		start=$SECONDS
+		if [ "$(adb emu avd snapshot save "$snapshot" | tr -d '\r' | head -n 1)" = OK ]; then
+			echo "[P+][$((SECONDS - start))s] Snapshot '$snapshot' saved"
+		else
+			echo "[P!] Could not save snapshot '$snapshot'"
+			exit 1
+		fi
 		;;
 	reset)
 		kill_emulator
 		if [ -d "$avd_dir/snapshots/$snapshot" ]; then
-			echo "[P] Restoring snapshot '$snapshot'..."
+			echo "[I] Restoring snapshot '$snapshot'"
 			start_emulator -snapshot "$snapshot"
 		else
 			echo "[W] No '$snapshot' snapshot, wiping data instead (Magisk app and root grants will be gone)"
@@ -222,14 +316,17 @@ case $action in
 		if [ -f "$ramdisk.backup" ]; then
 			mv "$ramdisk.backup" "$ramdisk"
 		fi
+		echo "[P+] AVD deleted, image unrooted"
 		;&
 	setup)
 		install_deps
 		create_avd
 		root_image
 		start_emulator -no-snapshot-load
+		magisk_additional_setup
+		grant_shell_root
 		if [ "$rooted_now" = true ]; then
-			finish_magisk_setup
+			echo "[I] Save clean state with: $0 -v $android_version -S"
 		fi
 		;;
 esac
