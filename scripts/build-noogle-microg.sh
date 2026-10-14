@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Builds Noogle microG module zip from src/ and microG APKs in apk/.
+
+set -e
 
 apk_dir=apk
 src_dir=src
@@ -6,88 +9,69 @@ dist_dir=dist
 module_dir=module-microg
 destination_dir=system/product
 suffix=MG
+# package => system app name
+declare -A apps=(
+	[com.google.android.gms]=GmsCore
+	[com.android.vending]=Phonesky
+	[com.google.android.gsf]=GoogleServicesFramework
+)
 
 show_help() {
 	echo "Usage: $0 [options]"
+	echo "Builds module into $dist_dir/, requires exactly one APK per microG package in $apk_dir/ (see pull-microg.sh)."
 	echo "Options:"
-	echo "  -h          Show this help message"
-	echo "  -d <dir>    Specify the destination partition [system|product|system_ext] (default: product)"
-	echo "  -s <suffix>  Specify the suffix to add to the directories and APK names (default: MG)"
+	echo "  -h            Show this help message"
+	echo "  -d <dir>      Destination partition [system|product|system_ext] (default: product)"
+	echo "  -s <suffix>   Suffix added to app directories and APK names (default: MG)"
 	exit 0
 }
 
 while getopts "hd:s:" opt; do
 	case $opt in
-		h)
-			show_help
-			;;
+		h) show_help ;;
 		d)
 			case $OPTARG in
-				system)
-					destination_dir=system
-					;;
-				product)
-					destination_dir=system/product
-					;;
-				system_ext)
-					destination_dir=system/system_ext
-					;;
+				system) destination_dir=system ;;
+				product) destination_dir=system/product ;;
+				system_ext) destination_dir=system/system_ext ;;
 				*)
 					echo "[E] Invalid destination partition: $OPTARG"
 					show_help
 					;;
 			esac
 			;;
-		s)
-			suffix="$OPTARG"
-			;;
-		*)
-			show_help
-			;;
+		s) suffix="$OPTARG" ;;
+		*) show_help ;;
 	esac
 done
 
 echo "[P] Building module noogle-microg..."
-
 rm -rf "$module_dir"
 mkdir -p "$module_dir"
 
-echo "[P] Checking for APK files..."
-
-for apk in "com.google.android.gms" "com.android.vending" "com.google.android.gsf"; do
-	if ls "$apk_dir/$apk"* 1> /dev/null 2>&1; then
-		echo "[I] $apk: PRESENT"
-	else
-		echo "[W] $apk: MISSING"
-	fi
-done
-
-apk_count=$(ls "$apk_dir/com.google.android.gms"* "$apk_dir/com.android.vending"* "$apk_dir/com.google.android.gsf"* 2>/dev/null | wc -l)
-if [ "$apk_count" -lt 3 ]; then
-	echo "[E] Missing one or more required APKs in $apk_dir/, download them from https://microg.org/download.html"
-	exit 1
-elif [ "$apk_count" -gt 3 ]; then
-	echo "[E] Too many APKs, the $apk_dir/ directory must contain exactly 3 APK files"
-	exit 1
-fi
-
 echo "[P] Copying APKs to module directory..."
-gms_dir="$destination_dir/priv-app/GmsCore$suffix"
-mkdir -p "$module_dir/$gms_dir"
-mkdir -p "$module_dir/$destination_dir/priv-app/Phonesky$suffix"
-mkdir -p "$module_dir/$destination_dir/priv-app/GoogleServicesFramework$suffix"
-
-gms_path="$gms_dir/GmsCore$suffix.apk"
-cp "$apk_dir"/com.google.android.gms* "$module_dir/$gms_path"
-cp "$apk_dir"/com.android.vending* "$module_dir/$destination_dir/priv-app/Phonesky$suffix/Phonesky$suffix.apk"
-cp "$apk_dir"/com.google.android.gsf* "$module_dir/$destination_dir/priv-app/GoogleServicesFramework$suffix/GoogleServicesFramework$suffix.apk"
+for pkg in "${!apps[@]}"; do
+	apks=("$apk_dir/$pkg"*.apk)
+	if [ ! -f "${apks[0]}" ]; then
+		echo "[E] $pkg: missing in $apk_dir/, run scripts/pull-microg.sh or download from https://microg.org/download.html"
+		exit 1
+	elif [ ${#apks[@]} -gt 1 ]; then
+		echo "[E] $pkg: ${#apks[@]} APKs in $apk_dir/, keep only one"
+		exit 1
+	fi
+	echo "[I] $pkg: ${apks[0]##*/}"
+	app="${apps[$pkg]}$suffix"
+	mkdir -p "$module_dir/$destination_dir/priv-app/$app"
+	cp "${apks[0]}" "$module_dir/$destination_dir/priv-app/$app/$app.apk"
+done
 
 echo "[P] Copying module files to module directory..."
 cp -r "$src_dir/$module_dir"/* "$module_dir/"
 mv "$module_dir/etc" "$module_dir/$destination_dir/"
 
-echo "[P] Pathing customize script..."
-sed -i "1i gms_path=$gms_path" "$module_dir/customize.sh"
+echo "[P] Patching customize script..."
+gms_dir="$destination_dir/priv-app/GmsCore$suffix"
+sed -i "1i gms_path=$gms_dir/GmsCore$suffix.apk" "$module_dir/customize.sh"
 sed -i "1i gms_dir=$gms_dir" "$module_dir/customize.sh"
 
 echo "[P] Removing service script... (doesn't work)"
@@ -100,8 +84,6 @@ module_filename="noogle-microg-$module_version.zip"
 echo "[P] Compressing module archive..."
 mkdir -p "$dist_dir"
 rm -f "$dist_dir/$module_filename"
-cd "$module_dir"
-zip -q -r "../$dist_dir/$module_filename" . -x **/.gitkeep
-cd -
+(cd "$module_dir" && zip -q -r "../$dist_dir/$module_filename" . -x '*.gitkeep')
 
-echo "[I] Module noogle-microg built successfully!"
+echo "[I] Module built: $dist_dir/$module_filename"
