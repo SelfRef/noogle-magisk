@@ -27,7 +27,7 @@ It requires Magisk to be installed obviously as it's a Magisk module. If you don
 6. Check signature spoofing status at the top
     - If your ROM doesn't support signature spoofing, you must add it: [check troubleshooting](#signatures-are-not-correct)
 7. If you have issues with microG crashing, install microG as user apps: [check troubleshooting](#microg-crashing)
-    - You can do it quickly using `scripts/install-user-apks.sh`
+    - You can do it quickly with ADB: `adb install --user all apk/com.google.android.gms*.apk && adb install --user all apk/com.android.vending*.apk`
 
 ## Build
 
