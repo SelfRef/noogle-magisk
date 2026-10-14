@@ -17,7 +17,7 @@ It requires Magisk to be installed obviously as it's a Magisk module. If you don
 > It's a good idea to enable ADB debugging as well before installing in case of any issues.
 
 1. Download latest version from [releases](https://github.com/SelfRef/noogle-magisk/releases)
-    - Or build it yourself
+    - Or [build it yourself](#build)
 2. Install through Magisk app
 3. Reboot
 4. In Magisk click "Action" button next to module to grant permissions
@@ -27,49 +27,34 @@ It requires Magisk to be installed obviously as it's a Magisk module. If you don
 6. Check signature spoofing status at the top
     - If your ROM doesn't support signature spoofing, you must add it: [check troubleshooting](#signatures-are-not-correct)
 7. If you have issues with microG crashing, install microG as user apps: [check troubleshooting](#microg-crashing)
-    - You can do it quickly with ADB: `adb install --user all apk/com.google.android.gms*.apk && adb install --user all apk/com.android.vending*.apk`
 
 ## Build
 
-0. Use Linux, Mac or WSL on Windows
-1. Install `zip`, `curl`, `jq` if not present
-2. Run `scripts/pull-microg.sh` to download latest microG APKs to `apk/` and verify their checksums
+Requires Linux, Mac or WSL on Windows with `bash`, `zip`, `curl` and `jq`.
+
+1. Run `scripts/pull-microg.sh` to download latest microG APKs to `apk/` and verify their checksums
     - Or [download them manually](https://microg.org/download.html) and place in `apk/` directory
-3. Run `scripts/build-noogle-microg.sh`
-    - Check `-h` flag for help with build options
+2. Run `scripts/build-noogle-microg.sh`
     - Module will be created in `dist/`
-4. Or run `scripts/install-noogle.sh` to build and install through ADB
+    - Check `-h` flag for build options, like destination partition
 
-## Test on emulator
+### Install from PC
 
-Arch Linux only for now. `scripts/setup-avd.sh` installs Android SDK to `~/Android/Sdk`, creates Google Play emulator, roots it with [rootAVD](https://gitlab.com/newbit/rootAVD) and starts it.
+Instead of copying the module to your phone, you can build and install it through ADB in one go:
 
-1. Run `scripts/setup-avd.sh` (`-v 13` for other Android version, `-h` for all options)
-2. Save clean state with `scripts/setup-avd.sh -S`
-3. Test with `scripts/install-noogle.sh`, go back to clean state with `scripts/setup-avd.sh -r`
+1. Enable ADB debugging and connect your phone
+2. Grant root to Shell in Magisk (it will ask on first `adb shell su`)
+3. Run `scripts/install-noogle.sh`
+    - It builds the module, installs it and reboots the phone, asking before each step (`-y` to skip)
+    - It accepts the same build options as the build script
 
-> [!TIP]
-> Use `export ANDROID_SERIAL=emulator-5554` if a real device is connected too.
-
-## Tested
-
-### Configurations
+## Compatibility
 
 Module/Type | Notes
 :--- | ---
 LSPosed + FakeGapps | Both official and from JingMatrix
-Play Integrity Fix | Requires installing user updates
+Play Integrity Fix | Requires installing [user updates](#microg-crashing)
 User updates | Installing microG updates from F-Droid repo
-
-### Devices
-The module was tested on:
-Device | OS | Android Version
-:--- | :---: | :---:
-Nothing Phone (1) | NothingOS 3.0 | 15
-Lenovo Yoga Tab 13 | Stock | 13
-Samsung Galaxy Tab S | LineageOS 17.1 | 10
-
-More to come...
 
 ## Troubleshooting
 
@@ -79,7 +64,7 @@ In order for microG apps to have the correct signatures visible by Android, your
 1. Enable Zygisk in Magisk's settings
 2. Download and install LSPosed through Magisk
     - [JingMatrix fork](https://github.com/JingMatrix/LSPosed/releases) up to Android 15 (maintained)
-    - [Official version](https://github.com/LSPosed/LSPosed/releases) up to Android 14 (not maintaned anymore)
+    - [Official version](https://github.com/LSPosed/LSPosed/releases) up to Android 14 (not maintained anymore)
 3. Download and install [FakeGApps](https://github.com/whew-inc/FakeGApps/releases) APK
 4. Reboot
 5. Open LSPosed from notifications and enable FakeGapps module
@@ -90,12 +75,18 @@ In order for microG apps to have the correct signatures visible by Android, your
 ### microG crashing
 If you want to use other modules interacting with microG, like Play Integrity Fix on top of this module, it's necessary to install both microG Services and microG Companion (same APKs as in this module, from [official site](https://microg.org/download.html)) on top, as user updates. Then Play Integrity Fix will work properly. In the future this workaround may be not necessary.
 
+If you built the module yourself, you can install them from `apk/` through ADB:
+```sh
+adb install --user all apk/com.google.android.gms*.apk
+adb install --user all apk/com.android.vending*.apk
+```
+
 ### Bootloop
-In this case if you have ADB debugging enabled just connect your phone to PC and run `scripts/disable-noogle.sh` in terminal. It will disable Noogle microG module and reboot your device.
+If you have ADB debugging enabled, connect your phone to PC and run `scripts/disable-noogle.sh`. It waits for the phone to connect, disables Noogle microG module and reboots it, so you can run it while the phone is bootlooping.
 
 More nuclear option is to run `adb shell magisk --remove-modules`. It will remove all modules from Magisk and reboot.
 
-If you don't have ADB enabled, you may try to restart the device a few times (holding Power + Vol-) while keeping Vol- for a while until animalted boot animation will start. This will trigger Magisk safe mode and modules will be disabled. More about this in [official documentation](https://topjohnwu.github.io/Magisk/faq.html).
+If you don't have ADB enabled, you may try to restart the device a few times (holding Power + Vol-) while keeping Vol- for a while until animated boot animation starts. This will trigger Magisk safe mode and modules will be disabled. More about this in [official documentation](https://topjohnwu.github.io/Magisk/faq.html).
 
 ## QA
 - Q: What is the difference between this and other microG installers?
