@@ -215,7 +215,8 @@ root_image() {
 		# stdin from /dev/null makes rootAVD take the default menu choices without prompting
 		# It hangs on installing Magisk app when device drops offline after pulling ramdisk, app is installed later anyway
 		(cd "$rootavd_dir" && timeout 300 bash rootAVD.sh "$image_path/ramdisk.img" < /dev/null) > "$log_dir/rootavd.log" 2>&1 || true
-		# rootAVD shuts the emulator down when done, unless it hung
+		# rootAVD shuts the emulator down when done, killing it early loses Magisk app install, unless it hung
+		for _ in $(seq 60); do is_running && sleep 1; done
 		kill_emulator > /dev/null
 		[ -f "$ramdisk" ] && break
 		# rootAVD ignores failed pulls, leaving no ramdisk at all
@@ -297,7 +298,7 @@ grant_shell_root() {
 		adb shell su -c id -u > "$su_out" 2> /dev/null || true
 		[ "$(tr -d '\r' < "$su_out")" = 0 ] && break
 		open_magisk
-		tap_node 'content-desc="Superuser"' 30 && tap_node 'checkable="true" checked="false"' 10 || true
+		tap_node 'content-desc="Superuser"' 30 && tap_node 'class="android.widget.Switch"[^>]*checked="false"' 30 || true
 		adb shell input keyevent HOME
 		adb shell su -c id -u > "$su_out" 2> /dev/null || true
 		[ "$(tr -d '\r' < "$su_out")" = 0 ] && break
