@@ -205,19 +205,24 @@ root_image() {
 	curl -fL --progress-bar "$magisk_url" -o "$rootavd_dir/Magisk.zip"
 	echo "[P+][$((SECONDS - start))s] Downloaded ${magisk_url##*/}"
 
-	start_emulator
-	echo "[P] Rooting image with rootAVD (log: $log_dir/rootavd.log)..."
-	start=$SECONDS
-	# stdin from /dev/null makes rootAVD take the default menu choices without prompting
-	(cd "$rootavd_dir" && bash rootAVD.sh "$image_path/ramdisk.img" < /dev/null) > "$log_dir/rootavd.log" 2>&1
-	# rootAVD shuts the emulator down when done
-	while is_running; do sleep 1; done
-	# rootAVD ignores failed pulls, leaving no ramdisk at all
-	if [ ! -f "$ramdisk" ]; then
+	# rootAVD sometimes fails to pull patched ramdisk back (adb transfer drops), so retry
+	for attempt in 1 2 3; do
+		start_emulator
+		echo "[P] Rooting image with rootAVD, attempt $attempt/3 (log: $log_dir/rootavd.log)..."
+		start=$SECONDS
+		# stdin from /dev/null makes rootAVD take the default menu choices without prompting
+		(cd "$rootavd_dir" && bash rootAVD.sh "$image_path/ramdisk.img" < /dev/null) > "$log_dir/rootavd.log" 2>&1
+		# rootAVD shuts the emulator down when done
+		while is_running; do sleep 1; done
+		[ -f "$ramdisk" ] && break
+		# rootAVD ignores failed pulls, leaving no ramdisk at all
 		mv "$ramdisk.backup" "$ramdisk"
-		echo "[P!] rootAVD failed to pull patched ramdisk, stock one restored. Check $log_dir/rootavd.log and re-run."
-		exit 1
-	fi
+		echo "[P!] rootAVD failed to pull patched ramdisk, stock one restored"
+		if [ $attempt = 3 ]; then
+			echo "[C] Could not root image, check $log_dir/rootavd.log"
+			exit 1
+		fi
+	done
 	echo "[P+][$((SECONDS - start))s] Image rooted"
 	rooted_now=true
 }
