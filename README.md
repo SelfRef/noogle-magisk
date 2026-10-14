@@ -39,6 +39,17 @@ It requires Magisk to be installed obviously as it's a Magisk module. If you don
     - Module will be created in `dist/`
 4. Or run `scripts/install-noogle.sh` to build and install through ADB
 
+## Test on emulator
+
+Arch Linux only for now. `scripts/setup-avd.sh` installs Android SDK to `~/Android/Sdk`, creates Google Play emulator, roots it with [rootAVD](https://gitlab.com/newbit/rootAVD) and starts it.
+
+1. Run `scripts/setup-avd.sh` (`-v 13` for other Android version, `-h` for all options)
+2. Save clean state with `scripts/setup-avd.sh -S`
+3. Test with `scripts/install-noogle.sh`, go back to clean state with `scripts/setup-avd.sh -r`
+
+> [!TIP]
+> Use `export ANDROID_SERIAL=emulator-5554` if a real device is connected too.
+
 ## Tested
 
 ### Configurations
