@@ -3,7 +3,8 @@
 #
 # Workflow: run without options (fully unattended, ~3 min first time), save clean state with -S,
 # test with install-noogle.sh, go back with -r. With a real device connected too: export ANDROID_SERIAL=emulator-5554
-# Logs: logs/emulator-<avd>.log, logs/rootavd.log. SDK in ~/Android/Sdk, rootAVD in ~/.cache/rootAVD.
+# Logs: logs/emulator-<avd>.log, logs/rootavd-<avd>.log. SDK in ~/Android/Sdk, rootAVD in ~/.cache/rootAVD.
+# Each Android version has its own port (15 is emulator-5554), so versions can be set up and run in parallel.
 #
 # Notes:
 # - Google Play image is a user build: no adb root, Play Services preinstalled like on stock phones.
@@ -20,11 +21,9 @@ android_version=15
 avd_name=""
 action=setup
 headless=false
-port=5554
 snapshot=clean
 sdk_dir="${ANDROID_HOME:-$HOME/Android/Sdk}"
 rootavd_dir="${XDG_CACHE_HOME:-$HOME/.cache}/rootAVD"
-magisk_apk="${XDG_CACHE_HOME:-$HOME/.cache}/noogle-magisk.apk"
 log_dir=logs
 magisk_release=latest
 
@@ -62,14 +61,14 @@ while getopts "hv:n:m:HSrRk" opt; do
 done
 
 case $android_version in
-	11) api=30 ;;
-	12) api=31 ;;
-	12L|12l) api=32 ;;
-	13) api=33 ;;
-	14) api=34 ;;
-	15) api=35 ;;
-	16) api=36 ;;
-	17) api=37.0 ;;
+	11) api=30 port=5556 ;;
+	12) api=31 port=5558 ;;
+	12L|12l) api=32 port=5560 ;;
+	13) api=33 port=5562 ;;
+	14) api=34 port=5564 ;;
+	15) api=35 port=5554 ;;
+	16) api=36 port=5566 ;;
+	17) api=37.0 port=5568 ;;
 	*)
 		echo "[C] Unsupported Android version: $android_version"
 		show_help 1
@@ -81,10 +80,17 @@ image_path="system-images/android-$api/google_apis_playstore/x86_64"
 image_pkg="$(echo "$image_path" | tr '/' ';')"
 ramdisk="$sdk_dir/$image_path/ramdisk.img"
 avd_dir="${ANDROID_AVD_HOME:-$HOME/.android/avd}/$avd_name.avd"
+magisk_apk="${XDG_CACHE_HOME:-$HOME/.cache}/noogle-magisk-$avd_name.apk"
+rootavd_log="$log_dir/rootavd-$avd_name.log"
 
 export ANDROID_HOME="$sdk_dir"
 export ANDROID_SERIAL="emulator-$port"
 export PATH="$sdk_dir/cmdline-tools/latest/bin:$sdk_dir/emulator:$PATH"
+
+# Prints debug message when run with DEBUG=1
+debug() {
+	[ "$DEBUG" = 1 ] && echo "[D] $*" || true
+}
 
 is_running() {
 	pgrep -f -- "-avd $avd_name( |$)" > /dev/null
@@ -204,17 +210,30 @@ root_image() {
 	echo "[P] Downloading ${magisk_url##*/}..."
 	start=$SECONDS
 	curl -fL --progress-bar "$magisk_url" -o "$magisk_apk"
-	cp "$magisk_apk" "$rootavd_dir/Magisk.zip"
 	echo "[P+][$((SECONDS - start))s] Downloaded ${magisk_url##*/}"
 
 	# rootAVD sometimes fails to pull patched ramdisk back (adb transfer drops), so retry
 	for attempt in 1 2 3; do
 		start_emulator
-		echo "[P] Rooting image with rootAVD, attempt $attempt/3 (log: $log_dir/rootavd.log)..."
+		echo "[P] Rooting image with rootAVD, attempt $attempt/3 (log: $rootavd_log)..."
 		root_start=$SECONDS
 		# stdin from /dev/null makes rootAVD take the default menu choices without prompting
-		# It hangs on installing Magisk app when device drops offline after pulling ramdisk, app is installed later anyway
-		(cd "$rootavd_dir" && timeout 300 bash rootAVD.sh "$image_path/ramdisk.img" < /dev/null) > "$log_dir/rootavd.log" 2>&1 || true
+		# rootAVD keeps its working files in own dir, so use a private copy to allow parallel setups
+		run_dir="$(mktemp -d)"
+		cp -r "$rootavd_dir/." "$run_dir"
+		cp "$magisk_apk" "$run_dir/Magisk.zip"
+		(cd "$run_dir" && exec bash rootAVD.sh "$image_path/ramdisk.img" < /dev/null) > "$rootavd_log" 2>&1 &
+		rootavd_pid=$!
+		# It hangs on installing Magisk app when device drops offline or emulator crashes after pulling ramdisk,
+		# so stop it then (app is installed later anyway), or after 5 minutes
+		for _ in $(seq 300); do
+			kill -0 $rootavd_pid 2> /dev/null && is_running || break
+			sleep 1
+		done
+		pkill -P $rootavd_pid 2> /dev/null || true
+		kill $rootavd_pid 2> /dev/null || true
+		wait $rootavd_pid 2> /dev/null || true
+		rm -rf "$run_dir"
 		# rootAVD shuts the emulator down when done, killing it early loses Magisk app install, unless it hung
 		for _ in $(seq 60); do is_running && sleep 1; done
 		kill_emulator > /dev/null
@@ -223,7 +242,7 @@ root_image() {
 		mv "$ramdisk.backup" "$ramdisk"
 		echo "[P!] rootAVD failed to pull patched ramdisk, stock one restored"
 		if [ $attempt = 3 ]; then
-			echo "[C] Could not root image, check $log_dir/rootavd.log"
+			echo "[C] Could not root image, check $rootavd_log"
 			exit 1
 		fi
 	done
@@ -269,22 +288,28 @@ magisk_additional_setup() {
 	adb shell command -v su > /dev/null 2>&1 && return 0
 	echo "[P] Running Magisk additional setup..."
 	start=$SECONDS
-	boot_id="$(adb shell cat /proc/sys/kernel/random/boot_id)"
+	boot_id="$(adb shell cat /proc/sys/kernel/random/boot_id | grep -oE '^[0-9a-f-]{36}')"
 	# Notification permission prompt would cover the dialog, permission exists since Android 13
 	adb shell pm grant com.topjohnwu.magisk android.permission.POST_NOTIFICATIONS 2> /dev/null || true
-	open_magisk
-	if ! tap_node 'text="OK"' 60; then
-		echo "[P!] Additional setup dialog didn't show up"
-		return 0
-	fi
-	# adb returns nothing while device goes down, only new boot id means reboot happened
-	for _ in $(seq 60); do
-		new_boot_id="$(adb shell cat /proc/sys/kernel/random/boot_id 2> /dev/null || true)"
+	open_magisk || true
+	# Taps during dialog animation get ignored, so keep tapping OK until device reboots
+	# adb returns nothing or blocks while device goes down, only new boot id means reboot happened
+	end=$((SECONDS + 120))
+	while [ $SECONDS -lt $end ]; do
+		new_boot_id="$(timeout 5 adb shell cat /proc/sys/kernel/random/boot_id 2> /dev/null | grep -oE '^[0-9a-f-]{36}' || true)"
 		[ -n "$new_boot_id" ] && [ "$new_boot_id" != "$boot_id" ] && break
+		# Magisk sometimes completes setup without reboot
+		timeout 5 adb shell command -v su > /dev/null 2>&1 && break
+		tap_node 'text="OK"' 1 && debug "t=$((SECONDS - start))s tapped OK" || true
 		sleep 2
 	done
-	echo "[P+][$((SECONDS - start))s] Additional setup done, rebooted"
+	# Wait for boot to finish in case device rebooted
 	start_emulator
+	if adb shell command -v su > /dev/null 2>&1; then
+		echo "[P+][$((SECONDS - start))s] Additional setup done"
+	else
+		echo "[P!] Magisk additional setup didn't complete"
+	fi
 }
 
 # adb shell su prompts in Magisk app, which is hidden from uiautomator so it can't be granted there
