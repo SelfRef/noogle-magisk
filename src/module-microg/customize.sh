@@ -43,7 +43,22 @@ done)"
 split_xml=/system/product/etc/permissions/split-permissions-google.xml
 [ -e $split_xml ] || split_xml=""
 
+# Prints APEX file providing given /apex/<name>/... path
+apex_file() {
+	name=${1#/apex/}
+	name=${name%%/*}
+	name=${name%@*}
+	for file in /system/apex/$name*.*apex /product/apex/$name*.*apex /system_ext/apex/$name*.*apex /vendor/apex/$name*.*apex; do
+		[ -f "$file" ] && echo "$file" && return 0
+	done
+	return 1
+}
+
 for dir in $stock_dirs $old_whiteouts $split_xml; do
+	# Since Android 17 GmsCore comes in APEX, which stays mounted when hidden, but package manager drops its app
+	case $dir in
+		/apex/*) dir="$(apex_file "$dir")" || abort "! APEX providing $dir not found, this device is not supported" ;;
+	esac
 	# Map device path to path inside module
 	case $dir in
 		/system/*) target=$dir ;;
