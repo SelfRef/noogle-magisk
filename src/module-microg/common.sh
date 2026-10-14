@@ -1,11 +1,5 @@
-remove_files="
-/system/product/priv-app/GmsCore
-/system/product/priv-app/PrebuiltGmsCore
-/system/product/priv-app/GoogleServicesFramework
-/system/product/priv-app/Phonesky
-/system/system_ext/priv-app/GoogleServicesFramework
-/system/product/etc/permissions/split-permissions-google.xml
-"
+# Packages replaced by the module
+packages="com.google.android.gms com.android.vending com.google.android.gsf"
 
 remove_package_updates() {
 	filter=${1}
@@ -13,11 +7,11 @@ remove_package_updates() {
 	echo "-------------------------------------------"
 	echo "[M] PACKAGE WITH UPDATE                TYPE"
 	echo "-------------------------------------------"
-	packages="com.google.android.gms com.android.vending com.google.android.gsf"
 	for package in $packages; do
 		# Check if package update from Google version is installed
 		path=$(pm path "$package" | grep "/data/app/" | sed -E 's/package:(\/data\/app\/[^/]+).*/\1/' | uniq)
-		microg_type=$(pm dump "$package" | grep -q 'FAKE_PACKAGE_SIGNATURE' && echo "true" || echo "false")
+		# grep reads whole output, early exit (-q) makes dumpsys print broken pipe errors
+		microg_type=$(pm dump "$package" | grep 'FAKE_PACKAGE_SIGNATURE' > /dev/null && echo "true" || echo "false")
 		if [ -n "$path" ]; then
 			if [ "$microg_type" = "true" ]; then
 				if [ "$filter" = "google" ]; then
@@ -50,9 +44,10 @@ grant_microg_permissions() {
 	echo "-------------------------------------------"
 
 	warn=""
+	gms_dump="$(dumpsys package com.google.android.gms)"
 
 	for perm in $permissions; do
-		if dumpsys package com.google.android.gms | grep -q "android.permission.$perm: granted=true"; then
+		if echo "$gms_dump" | grep -q "android.permission.$perm: granted=true"; then
 			printf "%-35s %s\n" "[I] $perm" "GRANTED"
 		else
 			printf "%-31s %s\n" "[W] $perm" "NOT GRANTED"
@@ -72,7 +67,7 @@ grant_microg_permissions() {
 	if [ "$warn" ]; then
 		echo "[W] Some permissions were not granted."
 		echo "[W] You can grant them from the microG app."
-	else
-		echo "[I] All permissions granted!"
+		return 1
 	fi
+	echo "[I] All permissions granted!"
 }

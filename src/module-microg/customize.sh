@@ -1,38 +1,59 @@
-source "$MODPATH/common.sh"
+# gms_dir and gms_path are prepended by build script
+
+# Oldest Magisk version this module is tested with
+min_magisk=29000
+if [ "$MAGISK_VER_CODE" -lt $min_magisk ]; then
+	abort "! Magisk v29.0+ is required, current: $MAGISK_VER"
+fi
+
+. "$MODPATH/common.sh"
 
 remove_package_updates google
 
-echo
-echo "[P] Processing files to remove..."
-echo "-------------------------------------------"
-echo "[M] FILE/DIR                         STATUS"
-echo "-------------------------------------------"
-for file in $remove_files; do
-	printf "%-40s %s\n" "[I] .../$(basename "$file")" "OK"
-	mknod "$MODPATH/$file" c 0 0
+ui_print ""
+ui_print "[P] Finding Google apps to remove..."
+# Stock app dirs from package manager (incl. hidden system packages behind updates) and whiteouts of
+# already installed module version (package manager sees our replacements then, not the stock dirs)
+stock_dirs="$(for package in $packages; do
+	dumpsys package "$package" | grep -oE 'codePath=/[^ ]+' | cut -d= -f2
+done | grep -v '^/data/')"
+old_whiteouts="$(cd "/data/adb/modules/$MODID" 2> /dev/null && find system -type c | sed 's|^|/|')"
+
+split_xml=/system/product/etc/permissions/split-permissions-google.xml
+[ -e $split_xml ] || split_xml=""
+
+for dir in $stock_dirs $old_whiteouts $split_xml; do
+	# Map device path to path inside module
+	case $dir in
+		/system/*) target=$dir ;;
+		/product/* | /system_ext/* | /vendor/*) target=/system$dir ;;
+		*) abort "! $dir is on a partition modules can't modify, this device is not supported" ;;
+	esac
+	# Skip dirs shipped by module itself (when built without suffix) and duplicates
+	[ -e "$MODPATH$target" ] && continue
+	case " $REMOVE " in *" $target "*) continue ;; esac
+	REMOVE="$REMOVE $target"
 done
-echo "-------------------------------------------"
-echo '[I] Done processing files.'
+ui_print "[I] Google apps are removed by installer below (Remove target)"
 
-
-
-echo
-echo "[P] Extracting libraries..."
-unzip -q -o "$MODPATH/$gms_path" 'lib/*' -d "$MODPATH/$gms_dir"
-mv "$MODPATH/$gms_dir/lib/arm64-v8a" "$MODPATH/$gms_dir/lib/arm64"
-mv "$MODPATH/$gms_dir/lib/armeabi-v7a" "$MODPATH/$gms_dir/lib/arm"
-mv "$MODPATH/$gms_dir/lib/x86" "$MODPATH/$gms_dir/lib/x86"
-mv "$MODPATH/$gms_dir/lib/x86_64" "$MODPATH/$gms_dir/lib/x64"
-echo "-------------------------------------------"
-echo "[M] FILE                             STATUS"
-echo "-------------------------------------------"
-for file in $(find "$MODPATH/$gms_dir/lib/$ARCH" -type f); do
-	printf "%-40s %s\n" "[I] $(basename $file)" "OK"
+ui_print ""
+ui_print "[P] Extracting libraries..."
+# System apps need native libs extracted, 64-bit devices get 32-bit ones too for 32-bit apps loading GmsCore code
+case $ARCH in
+	arm64) abis="arm64:arm64-v8a arm:armeabi-v7a" ;;
+	arm) abis="arm:armeabi-v7a" ;;
+	x64) abis="x64:x86_64 x86:x86" ;;
+	x86) abis="x86:x86" ;;
+esac
+for abi in $abis; do
+	unzip -q -o "$MODPATH/$gms_path" "lib/${abi#*:}/*" -d "$TMPDIR/gms" || abort "! Could not extract ${abi#*:} libraries"
+	mkdir -p "$MODPATH/$gms_dir/lib"
+	mv "$TMPDIR/gms/lib/${abi#*:}" "$MODPATH/$gms_dir/lib/${abi%%:*}"
+	ui_print "[I] ${abi%%:*}: $(ls "$MODPATH/$gms_dir/lib/${abi%%:*}" | wc -l) libraries"
 done
-echo "-------------------------------------------"
-echo '[I] Done extracting libraries.'
-echo
-echo "============================================"
-echo "[W] If this is fresh installation (not update),"
-echo "after reboot, click Action to grant permissions."
-echo "============================================"
+rm -rf "$TMPDIR/gms"
+# Installer applied default permissions and SELinux context before this script, so set them for extracted libs
+set_perm_recursive "$MODPATH/$gms_dir/lib" 0 0 0755 0644
+
+ui_print ""
+ui_print "[I] microG permissions are granted on first boot, use Action button if they get lost"
