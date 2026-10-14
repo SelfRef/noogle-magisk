@@ -236,9 +236,10 @@ root_image() {
 tap_node() {
 	end=$((SECONDS + $2))
 	while [ $SECONDS -lt "$end" ]; do
-		# Last 4 numbers of node are its bounds: [x1,y1][x2,y2]
+		# Node bounds: [x1,y1][x2,y2]
 		read -r x1 y1 x2 y2 <<< "$(adb exec-out uiautomator dump /dev/tty 2> /dev/null \
-			| grep -oE '<node [^>]*>' | grep -iE "$1" | head -n 1 | grep -oE '[0-9]+' | tail -n 4 | tr '\n' ' ')"
+			| grep -oE '<node [^>]*>' | grep -iE "$1" | head -n 1 \
+			| grep -oE 'bounds="[^"]*"' | grep -oE '[0-9]+' | tr '\n' ' ')"
 		if [ -n "$y2" ]; then
 			adb shell input tap $(((x1 + x2) / 2)) $(((y1 + y2) / 2))
 			return 0
