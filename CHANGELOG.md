@@ -6,6 +6,10 @@
 - Extract only native libraries needed by device
 - Fixed Action button when run from other directory
 - KernelSU and APatch: installer checks for metamodule and keeps removed Google apps on update
+- Support for Android 16 and 17 (Google Services in APEX)
+- Data of replaced Google apps is cleared on first boot (fixes "Google keeps stopping" crashes)
+- Google app updates are removed on every boot (fixes Play Store self-updating over microG Companion)
+- Permissions not existing on older Android versions are skipped
 
 # v2.1
 - Prevent uninstall microG updates during self-check (Action button in Magisk)
