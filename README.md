@@ -33,7 +33,8 @@ It requires Magisk to be installed obviously as it's a Magisk module. If you don
 
 0. Use Linux, Mac or WSL on Windows
 1. Install `zip`, `curl`, `jq` if not present
-2. [Download APKs manually](https://microg.org/download.html) and place in `apk/` directory
+2. Run `scripts/pull-microg.sh` to download latest microG APKs to `apk/` and verify their checksums
+    - Or [download them manually](https://microg.org/download.html) and place in `apk/` directory
 3. Run `scripts/build-noogle-microg.sh`
     - Check `-h` flag for help with build options
     - Module will be created in `dist/`
