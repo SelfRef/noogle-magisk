@@ -1,6 +1,14 @@
 # Packages replaced by the module
 packages="com.google.android.gms com.android.vending com.google.android.gsf"
 
+# Checks if active version of package is microG (it requests signature spoofing permission)
+# $1: package
+is_microg() {
+	# Only active package counts, hidden system package after it may be microG while update is Google's
+	# grep reads whole output, early exit (-q) makes dumpsys print broken pipe errors
+	pm dump "$1" | sed '/Hidden system packages:/,$d' | grep 'FAKE_PACKAGE_SIGNATURE' > /dev/null
+}
+
 remove_package_updates() {
 	filter=${1}
 	echo "[P] Checking package updates..."
@@ -10,9 +18,7 @@ remove_package_updates() {
 	for package in $packages; do
 		# Check if package update from Google version is installed
 		path=$(pm path "$package" | grep "/data/app/" | sed -E 's/package:(\/data\/app\/[^/]+).*/\1/' | uniq)
-		# Only active package counts, hidden system package after it may be microG while update is Google's
-		# grep reads whole output, early exit (-q) makes dumpsys print broken pipe errors
-		microg_type=$(pm dump "$package" | sed '/Hidden system packages:/,$d' | grep 'FAKE_PACKAGE_SIGNATURE' > /dev/null && echo "true" || echo "false")
+		microg_type=$(is_microg "$package" && echo "true" || echo "false")
 		if [ -n "$path" ]; then
 			if [ "$microg_type" = "true" ]; then
 				if [ "$filter" = "google" ]; then
@@ -48,7 +54,10 @@ grant_microg_permissions() {
 	gms_dump="$(dumpsys package com.google.android.gms)"
 
 	for perm in $permissions; do
-		if echo "$gms_dump" | grep -q "android.permission.$perm: granted=true"; then
+		# Permissions missing in dump don't exist on this Android version (e.g. POST_NOTIFICATIONS before 13)
+		if ! echo "$gms_dump" | grep -q "android.permission.$perm: granted="; then
+			printf "%-35s %s\n" "[I] $perm" "N/A"
+		elif echo "$gms_dump" | grep -q "android.permission.$perm: granted=true"; then
 			printf "%-35s %s\n" "[I] $perm" "GRANTED"
 		else
 			printf "%-31s %s\n" "[W] $perm" "NOT GRANTED"

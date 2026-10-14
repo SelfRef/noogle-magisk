@@ -21,6 +21,13 @@ fi
 
 remove_package_updates google
 
+# microG inherits data of replaced Google apps, which breaks it (e.g. newer database versions), clear it on
+# first boot when switching from Google. On module update microG is already active and its data is kept.
+if ! is_microg com.google.android.gms; then
+	touch "$MODPATH/clear-data"
+	ui_print "[I] Data of replaced Google apps will be cleared on first boot"
+fi
+
 ui_print ""
 ui_print "[P] Finding Google apps to remove..."
 # Stock app dirs from package manager (incl. hidden system packages behind updates) and whiteouts of
