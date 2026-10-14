@@ -5,6 +5,7 @@
 - microG permissions are granted automatically on first boot
 - Extract only native libraries needed by device
 - Fixed Action button when run from other directory
+- KernelSU and APatch: installer checks for metamodule and keeps removed Google apps on update
 
 # v2.1
 - Prevent uninstall microG updates during self-check (Action button in Magisk)
