@@ -25,6 +25,7 @@ snapshot=clean
 sdk_dir="${ANDROID_HOME:-$HOME/Android/Sdk}"
 rootavd_dir="${XDG_CACHE_HOME:-$HOME/.cache}/rootAVD"
 log_dir=logs
+magisk_release=latest
 
 # $1: exit code
 show_help() {
@@ -38,16 +39,18 @@ show_help() {
 	echo "  -S            Save running emulator state as '$snapshot' snapshot"
 	echo "  -r            Reset to '$snapshot' snapshot (wipes data if there is none)"
 	echo "  -R            Recreate: delete AVD, unroot image and set everything up again"
+	echo "  -m <version>  Magisk version to root with, e.g. v29.0, use with -R (default: latest stable)"
 	echo "  -k            Kill running emulator"
 	echo "After first setup save clean state with -S, so -r can restore it."
 	exit "${1:-0}"
 }
 
-while getopts "hv:n:HSrRk" opt; do
+while getopts "hv:n:m:HSrRk" opt; do
 	case $opt in
 		h) show_help ;;
 		v) android_version="$OPTARG" ;;
 		n) avd_name="$OPTARG" ;;
+		m) magisk_release="tags/$OPTARG" ;;
 		H) headless=true ;;
 		S) action=save ;;
 		r) action=reset ;;
@@ -194,7 +197,7 @@ root_image() {
 		return
 	fi
 	# rootAVD falls back to its bundled (old) Magisk when the emulator has no internet, so provide the latest one
-	magisk_url="$(curl -fsSL https://api.github.com/repos/topjohnwu/Magisk/releases/latest \
+	magisk_url="$(curl -fsSL "https://api.github.com/repos/topjohnwu/Magisk/releases/$magisk_release" \
 		| grep -o 'https://[^"]*/Magisk-v[^"]*\.apk' | head -n 1)"
 	echo "[P] Downloading ${magisk_url##*/}..."
 	start=$SECONDS
