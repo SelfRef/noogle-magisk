@@ -1,8 +1,19 @@
 # gms_dir and gms_path are prepended by build script
 
+# KernelSU and APatch fake MAGISK_VER_CODE, so detect them first
+if [ "$KSU" = true ] || [ "$APATCH" = true ]; then
+	# Since KernelSU v3.0.0 (32179) and APatch 11219 module files are mounted only by a metamodule
+	if [ ! -e /data/adb/metamodule ]; then
+		if [ "${KSU_VER_CODE:-0}" -ge 32179 ] || [ "${APATCH_VER_CODE:-0}" -ge 11219 ]; then
+			abort "! Install a metamodule (e.g. meta-overlayfs) first, without it module files are not mounted"
+		fi
+		ui_print "[W] No metamodule found, if your root solution needs one, module files won't be mounted"
+	fi
+	if [ "$KSU" = true ]; then
+		ui_print "[W] KernelSU: disable \"Umount modules\" in App Profile of microG Services, Companion and Services Framework"
+	fi
 # Oldest Magisk version this module is tested with
-min_magisk=29000
-if [ "$MAGISK_VER_CODE" -lt $min_magisk ]; then
+elif [ "$MAGISK_VER_CODE" -lt 29000 ]; then
 	abort "! Magisk v29.0+ is required, current: $MAGISK_VER"
 fi
 
@@ -17,7 +28,10 @@ ui_print "[P] Finding Google apps to remove..."
 stock_dirs="$(for package in $packages; do
 	dumpsys package "$package" | grep -oE 'codePath=/[^ ]+' | cut -d= -f2
 done | grep -v '^/data/')"
-old_whiteouts="$(cd "/data/adb/modules/$MODID" 2> /dev/null && find system -type c | sed 's|^|/|')"
+# KernelSU/APatch move partitions out of system/ and overlay metamodules move files to their own dir
+old_whiteouts="$(for dir in "/data/adb/modules/$MODID" "/data/adb/metamodule/mnt/$MODID"; do
+	(cd "$dir" 2> /dev/null && find . -type c | sed -E 's#^\./##; s#^(product|system_ext|vendor)/#system/\1/#; s#^#/#')
+done)"
 
 split_xml=/system/product/etc/permissions/split-permissions-google.xml
 [ -e $split_xml ] || split_xml=""
