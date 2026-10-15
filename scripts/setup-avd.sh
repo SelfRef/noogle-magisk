@@ -114,7 +114,8 @@ start_emulator() {
 	else
 		echo "[P] Starting emulator $avd_name (log: $log_dir/emulator-$avd_name.log)..."
 		mkdir -p "$log_dir"
-		args=(-avd "$avd_name" -port "$port" -no-snapshot-save "$@")
+		# Host GPU (seen with AMD/Mesa) crashes emulators, especially several at once, software rendering is stable
+		args=(-avd "$avd_name" -port "$port" -no-snapshot-save -gpu swiftshader_indirect "$@")
 		[ "$headless" = true ] && args+=(-no-window)
 		nohup emulator "${args[@]}" \
 			> "$log_dir/emulator-$avd_name.log" 2>&1 &
