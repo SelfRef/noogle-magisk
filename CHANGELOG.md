@@ -1,4 +1,7 @@
 # Unreleased
+
+# v2026.10.15
+- microG Services 0.3.17.252432, Companion 0.3.17.40226, Services Framework Proxy v0.1.0
 - New Noogle Unbundle module, removes other Google apps from system (they stay installable from store)
 - Background location and SMS permissions of microG are granted properly (they are restricted and need allowlisting)
 - Fixed clearing data of replaced Google apps on first boot (failed when run too early)
