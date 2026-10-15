@@ -5,6 +5,7 @@
 # test with install-noogle.sh, go back with -r. With a real device connected too: export ANDROID_SERIAL=emulator-5554
 # Logs: logs/emulator-<avd>.log, logs/rootavd-<avd>.log. SDK in ~/Android/Sdk, rootAVD in ~/.cache/rootAVD.
 # Each Android version has its own port (15 is emulator-5554), so versions can be set up and run in parallel.
+# Keep it to ~3 at once, more overload the host and emulator watchdog kills them ("hanging thread" in log).
 #
 # Notes:
 # - Google Play image is a user build: no adb root, Play Services preinstalled like on stock phones.
