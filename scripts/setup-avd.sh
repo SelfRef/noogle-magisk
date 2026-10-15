@@ -5,7 +5,8 @@
 # test with install-noogle.sh, go back with -r. With a real device connected too: export ANDROID_SERIAL=emulator-5554
 # Logs: logs/emulator-<avd>.log, logs/rootavd-<avd>.log. SDK in ~/Android/Sdk, rootAVD in ~/.cache/rootAVD.
 # Each Android version has its own port (15 is emulator-5554), so versions can be set up and run in parallel.
-# Keep it to ~3 at once, more overload the host and emulator watchdog kills them ("hanging thread" in log).
+# Parallel emulators need WiFiPacketStream feature off (done here), otherwise shared netsimd makes them hang
+# ("hanging thread" in log) and crash.
 #
 # Notes:
 # - Google Play image is a user build: no adb root, Play Services preinstalled like on stock phones.
@@ -115,7 +116,9 @@ start_emulator() {
 	else
 		echo "[P] Starting emulator $avd_name (log: $log_dir/emulator-$avd_name.log)..."
 		mkdir -p "$log_dir"
-		args=(-avd "$avd_name" -port "$port" -no-snapshot-save -crash-report-mode never -no-metrics "$@")
+		# netsimd WiFi packet streamer shared by emulators makes the next ones hang and crash, built-in WiFi works fine
+		args=(-avd "$avd_name" -port "$port" -no-snapshot-save -crash-report-mode never -no-metrics \
+			-feature -WiFiPacketStream "$@")
 		[ "$headless" = true ] && args+=(-no-window)
 		nohup emulator "${args[@]}" \
 			> "$log_dir/emulator-$avd_name.log" 2>&1 &
