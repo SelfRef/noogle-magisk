@@ -115,9 +115,7 @@ start_emulator() {
 	else
 		echo "[P] Starting emulator $avd_name (log: $log_dir/emulator-$avd_name.log)..."
 		mkdir -p "$log_dir"
-		# Host GPU (seen with AMD/Mesa) crashes emulators, especially several at once, software rendering is stable
-		args=(-avd "$avd_name" -port "$port" -no-snapshot-save -gpu swiftshader_indirect \
-			-crash-report-mode never -no-metrics "$@")
+		args=(-avd "$avd_name" -port "$port" -no-snapshot-save -crash-report-mode never -no-metrics "$@")
 		[ "$headless" = true ] && args+=(-no-window)
 		nohup emulator "${args[@]}" \
 			> "$log_dir/emulator-$avd_name.log" 2>&1 &
@@ -201,9 +199,24 @@ create_avd() {
 	echo "[P+] AVD created"
 }
 
-# rootAVD patches the shared system image ramdisk and keeps the stock one as ramdisk.img.backup
+# rootAVD patches the shared system image ramdisk. Its own backup (ramdisk.img.backup) gets lost or broken
+# when rooting crashes, so a pristine copy is kept as ramdisk.img.stock
+unroot_image() {
+	if [ -f "$ramdisk.stock" ]; then
+		cp "$ramdisk.stock" "$ramdisk"
+	elif [ -f "$ramdisk.backup" ]; then
+		mv "$ramdisk.backup" "$ramdisk"
+	fi
+	rm -f "$ramdisk.backup"
+}
+
 root_image() {
-	if [ -f "$ramdisk.backup" ]; then
+	if [ -f "$ramdisk.backup" ] && [ ! -f "$ramdisk.stock" ]; then
+		cp "$ramdisk.backup" "$ramdisk.stock"
+	elif [ ! -f "$ramdisk.stock" ]; then
+		cp "$ramdisk" "$ramdisk.stock"
+	fi
+	if ! cmp -s "$ramdisk" "$ramdisk.stock"; then
 		echo "[I] Image already rooted"
 		return
 	fi
@@ -240,10 +253,10 @@ root_image() {
 		# rootAVD shuts the emulator down when done, killing it early loses Magisk app install, unless it hung
 		for _ in $(seq 60); do is_running && sleep 1; done
 		kill_emulator > /dev/null
-		[ -f "$ramdisk" ] && break
-		# rootAVD ignores failed pulls, leaving no ramdisk at all
-		mv "$ramdisk.backup" "$ramdisk"
-		echo "[P!] rootAVD failed to pull patched ramdisk, stock one restored"
+		# rootAVD ignores failed pulls, leaving no or unpatched ramdisk
+		[ -f "$ramdisk" ] && ! cmp -s "$ramdisk" "$ramdisk.stock" && break
+		unroot_image
+		echo "[P!] rootAVD failed to patch ramdisk, stock one restored"
 		if [ $attempt = 3 ]; then
 			echo "[C] Could not root image, check $rootavd_log"
 			exit 1
@@ -374,9 +387,7 @@ case $action in
 		kill_emulator
 		echo "[P] Deleting AVD $avd_name and unrooting image..."
 		avdmanager delete avd -n "$avd_name" > /dev/null 2>&1 || true
-		if [ -f "$ramdisk.backup" ]; then
-			mv "$ramdisk.backup" "$ramdisk"
-		fi
+		unroot_image
 		echo "[P+] AVD deleted, image unrooted"
 		;&
 	setup)
