@@ -342,7 +342,7 @@ grant_shell_root() {
 		# Returns at once when already granted, otherwise waits for prompt to time out
 		adb shell su -c id -u > "$su_out" 2> /dev/null || true
 		[ "$(tr -d '\r' < "$su_out")" = 0 ] && break
-		open_magisk
+		open_magisk || true
 		tap_node 'content-desc="Superuser"' 30 && tap_node 'class="android.widget.Switch"[^>]*checked="false"' 30 || true
 		adb shell input keyevent HOME
 		adb shell su -c id -u > "$su_out" 2> /dev/null || true
