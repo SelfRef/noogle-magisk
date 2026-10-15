@@ -161,3 +161,16 @@ Google Play Services may be left without location permissions. Grant them with:
 adb shell pm grant com.google.android.gms android.permission.ACCESS_COARSE_LOCATION
 adb shell pm grant com.google.android.gms android.permission.ACCESS_FINE_LOCATION
 ```
+
+## Credits
+
+- [microG](https://github.com/microg/GmsCore), [Magisk](https://github.com/topjohnwu/Magisk), [Vector](https://github.com/JingMatrix/Vector) and [FakeGApps](https://github.com/whew-inc/FakeGApps) developers
+- People reporting issues and sending pull requests on GitHub, especially:
+    - [bschtl](https://github.com/bschtl), for answering many issues too
+    - [sewnie](https://github.com/sewnie), [becknik](https://github.com/becknik) and [adiktofsugar](https://github.com/adiktofsugar), for pull requests that shaped the APK download script, device path detection and microG permission updates
+    - [StarchildCatalystN7](https://github.com/StarchildCatalystN7), for a fork with fixes that helped users while the project was paused
+    - [Louis047](https://github.com/Louis047) and [Gorkido](https://github.com/Gorkido), for testing and helping others update microG manually
+- People in the [XDA thread](https://xdaforums.com/t/guide-magisk-module-universal-systemless-microg-installation-on-stock-android.4686426/) helping others and testing on their devices, especially:
+    - bschtl, for keeping the thread alive with fixes and workarounds (Play Store swap, KernelSU metamodule)
+    - someone8, for the inspiration and research on privileged permissions and signature spoofing
+    - stormy1777, for the Play Integrity Fix crash report and workaround
