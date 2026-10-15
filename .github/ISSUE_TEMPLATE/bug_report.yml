@@ -1,0 +1,68 @@
+name: Bug report
+description: Module doesn't install, microG doesn't work, crashes or bootloops
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Check [Troubleshooting](https://github.com/SelfRef/noogle-magisk#troubleshooting) and [Q&A](https://github.com/SelfRef/noogle-magisk#qa) first, many problems are solved there.
+  - type: dropdown
+    id: module
+    attributes:
+      label: Module
+      options:
+        - Noogle microG
+        - Noogle microG Playful
+        - Noogle Unbundle
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Module version
+      placeholder: v2026.10.15
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device, ROM and Android version
+      placeholder: Pixel 8, stock Android 16
+    validations:
+      required: true
+  - type: input
+    id: root
+    attributes:
+      label: Root solution and version
+      description: Add metamodule on KernelSU/APatch
+      placeholder: Magisk v30.2
+    validations:
+      required: true
+  - type: input
+    id: spoofing
+    attributes:
+      label: Signature spoofing and modules interacting with microG
+      placeholder: Vector v2.2 + FakeGApps, PlayIntegrityFork
+  - type: textarea
+    id: description
+    attributes:
+      label: What happens
+      description: What you did, what you expected and what happened instead
+    validations:
+      required: true
+  - type: textarea
+    id: installer
+    attributes:
+      label: Installer output
+      description: Saved with the save button in Magisk after installing
+      render: shell
+  - type: textarea
+    id: service-log
+    attributes:
+      label: Noogle microG log of last boot
+      description: "`adb shell su -c cat /data/adb/modules/noogle-microg/service.log`"
+      render: shell
+  - type: textarea
+    id: logcat
+    attributes:
+      label: Logcat
+      description: For crashes, right after the crash `adb logcat -d -b crash,main > logcat.txt`, attach the file here. It may contain personal data like account names, check it first.

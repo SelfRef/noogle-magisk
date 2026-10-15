@@ -15,7 +15,7 @@ Noogle Unbundle | Removes other Google apps from system, like Chrome, Gmail, Map
 It requires Magisk v29.0 or newer. If you don't have it yet, consult the [official installation instructions](https://topjohnwu.github.io/Magisk/install.html).
 
 > [!WARNING]
-> Modules are mainly tested on Android emulators (Google Play images). Real devices and vendor ROMs may behave differently, please report any issues you hit.
+> Modules are mainly tested on Android emulators (Google Play images). Real devices and vendor ROMs may behave differently, please [report](#reporting-issues) any issues you hit.
 
 > [!TIP]
 > It's a good idea to enable ADB debugging as well before installing in case of any issues.
@@ -161,6 +161,16 @@ Google Play Services may be left without location permissions. Grant them with:
 adb shell pm grant com.google.android.gms android.permission.ACCESS_COARSE_LOCATION
 adb shell pm grant com.google.android.gms android.permission.ACCESS_FINE_LOCATION
 ```
+
+## Reporting issues
+
+Open a [bug report](https://github.com/SelfRef/noogle-magisk/issues/new?template=bug_report.yml), it asks for your device, versions and logs:
+
+- Installer output: save button in Magisk after installing
+- Noogle microG log of last boot: `adb shell su -c cat /data/adb/modules/noogle-microg/service.log`
+- For crashes, logcat right after the crash: `adb logcat -d -b crash,main > logcat.txt`
+
+Logcat may contain personal data like account names or nearby networks, check it before attaching. Questions are welcome in [Discussions](https://github.com/SelfRef/noogle-magisk/discussions).
 
 ## Credits
 
