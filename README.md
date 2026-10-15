@@ -8,7 +8,7 @@ Name | Description
 --- | ---
 Noogle microG | Installs microG Services in place of Google Services (if present) and microG Companion in place of Play Store
 Noogle microG Playful | Same, but keeps Play Store
-Noogle Debloat | Not released yet, will remove other Google system apps (still installable from store)
+Noogle Unbundle | Removes other Google apps from system, like Chrome, Gmail, Maps or YouTube (they stay installable from store)
 
 ## Install
 
@@ -23,6 +23,7 @@ It requires Magisk v29.0 or newer. If you don't have it yet, consult the [offici
 1. Download latest version from [releases](https://github.com/SelfRef/noogle-magisk/releases)
     - `noogle-microg` replaces Play Store with microG Companion, use [Aurora Store](https://auroraoss.com) for apps
     - `noogle-microg-playful` keeps Play Store of your ROM, for ROMs without it see [playful build](#playful-variant)
+    - `noogle-unbundle` is optional and works on its own, install it as a separate module
 2. Install through Magisk app
 3. Reboot, microG permissions are granted automatically on first boot
 4. Ensure all permission boxes are checked in microG Self-Check
@@ -37,7 +38,7 @@ Requires Linux, Mac or WSL on Windows with `bash`, `zip`, `curl` and `jq`.
 
 1. Run `scripts/pull-microg.sh` to download latest microG APKs to `apk/` and verify their checksums
     - Or [download them manually](https://microg.org/download.html) and place in `apk/` directory
-2. Run `scripts/build-noogle-microg.sh`
+2. Run `scripts/build-noogle-microg.sh` (or `scripts/build-noogle-unbundle.sh` for Noogle Unbundle, it needs no APKs)
     - Module will be created in `dist/`
     - Check `-h` flag for build options, like destination partition
 
@@ -56,7 +57,7 @@ Instead of copying the module to your phone, you can build and install it throug
 2. Grant root to Shell in Magisk (it will ask on first `adb shell su`)
 3. Run `scripts/install-noogle.sh`
     - It builds the module, installs it and reboots the phone, asking before each step (`-y` to skip)
-    - It accepts the same build options as the build script
+    - It accepts the same build options as the build script, `-u` installs Noogle Unbundle instead
 
 ## Compatibility
 
@@ -126,8 +127,11 @@ Android 11 to 17, tested on emulators. On Android 17 signature spoofing with Vec
 #### Does it work on OnePlus, OPPO or realme?
 Only if Google apps are on regular partitions. Some of their ROMs (e.g. OxygenOS 12) keep them on `my_*` partitions like `/my_heytap`, which Magisk modules can't modify. The installer stops with a message in that case.
 
-#### Where is Noogle Debloat?
-It's not released yet. Modules like "microG Installer Revived" are separate projects, not part of Noogle.
+#### Which apps does Noogle Unbundle remove?
+Google apps you can install from store again, like Chrome, Gmail, Maps, YouTube, Photos, Drive or the Google app, full list is in [packages.txt](src/module-unbundle/packages.txt). Phone basics (Dialer, Contacts, Messages, Gboard, Pixel Launcher, Clock, Camera) and system components stay, removing them leaves the phone without a replacement.
+
+#### What happens to my data in unbundled apps?
+Apps you updated stay installed as regular apps with their data, so you can uninstall them like any other app. Apps never updated are removed with their data. After uninstalling Noogle Unbundle they are back as system apps.
 
 ### Setup
 

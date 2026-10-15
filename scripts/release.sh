@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Prepares a release when microG got updated or CHANGELOG.md has unreleased changes: pulls microG, updates
-# CHANGELOG.md and update-microg.json, writes dist/release-notes.md and builds the module. Committing,
+# CHANGELOG.md and update-*.json, writes dist/release-notes.md and builds the modules. Committing,
 # tagging and publishing is left to the caller (see .github/workflows/release.yml).
 
 set -e
@@ -47,13 +47,13 @@ echo "$notes" > dist/release-notes.md
 } > CHANGELOG.md.new
 mv CHANGELOG.md.new CHANGELOG.md
 
-# One update file per variant, so Magisk never switches installed variant
-for variant in "" -playful; do
-	cat > "update-microg$variant.json" << EOF
+# One update file per module and variant, so Magisk never switches installed variant
+for module in microg microg-playful unbundle; do
+	cat > "update-$module.json" << EOF
 {
 	"version": "$version",
 	"versionCode": $(date -u +%Y%m%d),
-	"zipUrl": "$repo_url/releases/download/$version/noogle-microg$variant-$version.zip",
+	"zipUrl": "$repo_url/releases/download/$version/noogle-$module-$version.zip",
 	"changelog": "https://raw.githubusercontent.com/SelfRef/noogle-magisk/refs/heads/master/CHANGELOG.md"
 }
 EOF
@@ -61,4 +61,5 @@ done
 
 ./scripts/build-noogle-microg.sh
 ./scripts/build-noogle-microg.sh -p
+./scripts/build-noogle-unbundle.sh
 echo "[P+] Release $version prepared"

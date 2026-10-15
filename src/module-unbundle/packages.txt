@@ -1,0 +1,41 @@
+# Google apps removed from system, all installable from store. Kept on purpose: phone basics (Dialer, Contacts,
+# Messages, Gboard, Pixel Launcher, Clock, Camera, Setup), accessibility (TalkBack, Speech Services), system
+# components (Android System Intelligence, Digital Wellbeing, Android Auto, WebView) and Noogle microG ones.
+com.android.chrome                          # Chrome
+com.google.android.apps.adm                 # Find My Device
+com.google.android.apps.bard                # Gemini
+com.google.android.apps.books               # Play Books
+com.google.android.apps.chromecast.app      # Google Home
+com.google.android.apps.docs                # Drive
+com.google.android.apps.docs.editors.docs   # Docs
+com.google.android.apps.docs.editors.sheets # Sheets
+com.google.android.apps.docs.editors.slides # Slides
+com.google.android.apps.fitness             # Fit
+com.google.android.apps.googleassistant     # Assistant
+com.google.android.apps.magazines           # News
+com.google.android.apps.maps                # Maps
+com.google.android.apps.mapslite            # Maps Go
+com.google.android.apps.nbu.files           # Files by Google
+com.google.android.apps.nbu.paisa.user      # Google Pay (India)
+com.google.android.apps.photos              # Photos
+com.google.android.apps.podcasts            # Podcasts
+com.google.android.apps.recorder            # Recorder
+com.google.android.apps.searchlite          # Google Go
+com.google.android.apps.subscriptions.red   # Google One
+com.google.android.apps.tachyon             # Meet (Duo)
+com.google.android.apps.tasks               # Tasks
+com.google.android.apps.translate           # Translate
+com.google.android.apps.walletnfcrel        # Wallet
+com.google.android.apps.weather             # Weather
+com.google.android.apps.youtube.kids        # YouTube Kids
+com.google.android.apps.youtube.music       # YouTube Music
+com.google.android.calendar                 # Calendar
+com.google.android.gm                       # Gmail
+com.google.android.gm.lite                  # Gmail Go
+com.google.android.googlequicksearchbox     # Google
+com.google.android.keep                     # Keep
+com.google.android.play.games               # Play Games
+com.google.android.videos                   # Google TV
+com.google.android.youtube                  # YouTube
+com.google.ar.core                          # Play Services for AR
+com.google.ar.lens                          # Lens

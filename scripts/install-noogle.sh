@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Builds Noogle microG module and installs it through ADB on a rooted device.
+# Builds Noogle microG (or Unbundle) module and installs it through ADB on a rooted device.
 
 set -e
 
 skip_confirmations=false
 build_args=()
+build_script=build-noogle-microg.sh
 
 # $1: exit code
 show_help() {
@@ -13,6 +14,7 @@ show_help() {
 	echo "Options:"
 	echo "  -h            Show this help message"
 	echo "  -y            Don't ask for confirmations"
+	echo "  -u            Noogle Unbundle instead of Noogle microG (build options don't apply)"
 	echo "  -d <dir>      Passed to build: destination partition [system|product|system_ext]"
 	echo "  -s <suffix>   Passed to build: suffix added to app directories and APK names"
 	echo "  -p            Passed to build: playful variant keeping device's Play Store"
@@ -20,10 +22,11 @@ show_help() {
 	exit "${1:-0}"
 }
 
-while getopts "hyd:s:pP:" opt; do
+while getopts "hyud:s:pP:" opt; do
 	case $opt in
 		h) show_help ;;
 		y) skip_confirmations=true ;;
+		u) build_script=build-noogle-unbundle.sh ;;
 		d|s|P) build_args+=("-$opt" "$OPTARG") ;;
 		p) build_args+=(-p) ;;
 		*) show_help 1 ;;
@@ -35,7 +38,8 @@ confirm() {
 	[ "$skip_confirmations" = true ] || read -rp "[I] $1 [Enter to continue, Ctrl+C to abort] "
 }
 
-./scripts/build-noogle-microg.sh "${build_args[@]}"
+# Unbundle build has no options, it ignores them
+./scripts/$build_script "${build_args[@]}"
 module_filename="$(cd dist && ls -t *.zip | head -1)"
 
 confirm "Install $module_filename on $(adb get-serialno)?"

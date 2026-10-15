@@ -1,0 +1,5 @@
+id=noogle-unbundle
+name=Noogle Unbundle
+author=SelfRef
+description=Removes Google apps from system, they stay installable from store
+updateJson=https://raw.githubusercontent.com/SelfRef/noogle-magisk/refs/heads/master/update-unbundle.json
