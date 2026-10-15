@@ -56,8 +56,9 @@ while getopts "hd:s:pP:" opt; do
 	esac
 done
 
-# Date based version, Magisk offers update when versionCode grows
-module_version="v$(date -u +%Y.%m.%d)"
+# Date based version, Magisk offers update when versionCode grows. Release script sets them for same day releases.
+module_version="${MODULE_VERSION:-v$(date -u +%Y.%m.%d)}"
+module_version_code="${MODULE_VERSION_CODE:-$(date -u +%Y%m%d)00}"
 module_filename="noogle-microg${variant:+-$variant}${playstore_apk:+-playstore}-$module_version.zip"
 
 echo "[P] Building module noogle-microg $module_version..."
@@ -107,7 +108,7 @@ fi
 
 cp -r "$src_dir/$module_dir"/* "$module_dir/"
 mv "$module_dir/etc" "$module_dir/$destination_dir/"
-printf '\nversion=%s\nversionCode=%s\n' "$module_version" "$(date -u +%Y%m%d)" >> "$module_dir/module.prop"
+printf '\nversion=%s\nversionCode=%s\n' "$module_version" "$module_version_code" >> "$module_dir/module.prop"
 
 # Play Store configs are needed only when bundling it, ROMs with Play Store have their own
 [ -n "$playstore_apk" ] || find "$module_dir/$destination_dir/etc" -name '*-playstore.xml' -delete

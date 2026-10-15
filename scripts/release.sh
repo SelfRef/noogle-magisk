@@ -5,7 +5,6 @@
 
 set -e
 
-version="v$(date -u +%Y.%m.%d)"
 repo_url=https://github.com/SelfRef/noogle-magisk
 
 # Lock only first, microG APKs are pulled only when there is something to release
@@ -25,11 +24,16 @@ if [ -n "$new_permissions" ]; then
 	exit 1
 fi
 
-# ponytail: one release per day, versionCode is the date
-if git ls-remote --exit-code --tags origin "refs/tags/$version" > /dev/null; then
-	echo "[C] $version is already released, try again tomorrow"
-	exit 1
-fi
+# Next releases of the same day get .1, .2... suffix, versionCode is the date followed by 2 digit release number
+date_version="v$(date -u +%Y.%m.%d)"
+version=$date_version
+number=0
+while git ls-remote --exit-code --tags origin "refs/tags/$version" > /dev/null; do
+	number=$((number + 1))
+	version="$date_version.$number"
+done
+version_code="$(date -u +%Y%m%d)$(printf %02d $number)"
+export MODULE_VERSION=$version MODULE_VERSION_CODE=$version_code
 
 echo "[P] Preparing release $version..."
 microg="$(sed -n 's/^\([^ ]*\) version \(.*\)/\1 \2/p' microg.lock | sed '
@@ -53,7 +57,7 @@ for module in microg microg-playful unbundle; do
 	cat > "update-$module.json" << EOF
 {
 	"version": "$version",
-	"versionCode": $(date -u +%Y%m%d),
+	"versionCode": $version_code,
 	"zipUrl": "$repo_url/releases/download/$version/noogle-$module-$version.zip",
 	"changelog": "https://raw.githubusercontent.com/SelfRef/noogle-magisk/refs/heads/master/CHANGELOG.md"
 }
