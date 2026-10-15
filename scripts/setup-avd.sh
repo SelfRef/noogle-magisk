@@ -99,7 +99,7 @@ is_running() {
 kill_emulator() {
 	is_running || return 0
 	echo "[P] Stopping emulator $avd_name..."
-	start=$SECONDS
+	local start=$SECONDS
 	adb emu kill > /dev/null 2>&1 || true
 	while is_running; do sleep 1; done
 	echo "[P+][$((SECONDS - start))s] Emulator stopped"
@@ -108,7 +108,7 @@ kill_emulator() {
 # Starts emulator if not running and waits for boot
 # $@: extra emulator args
 start_emulator() {
-	start=$SECONDS
+	local start=$SECONDS
 	if is_running; then
 		echo "[P] Waiting for emulator $avd_name to boot..."
 	else
@@ -253,13 +253,14 @@ root_image() {
 # Taps first UI node matching regex once it shows up on screen
 # $1: regex for node attributes (case insensitive), $2: timeout in seconds
 tap_node() {
-	end=$((SECONDS + $2))
-	while [ $SECONDS -lt "$end" ]; do
+	local deadline=$((SECONDS + $2)) x1 y1 x2 y2
+	while [ $SECONDS -lt "$deadline" ]; do
 		# Node bounds: [x1,y1][x2,y2]
 		read -r x1 y1 x2 y2 <<< "$(adb exec-out uiautomator dump /dev/tty 2> /dev/null \
 			| grep -oE '<node [^>]*>' | grep -iE "$1" | head -n 1 \
 			| grep -oE 'bounds="[^"]*"' | grep -oE '[0-9]+' | tr '\n' ' ')"
 		if [ -n "$y2" ]; then
+			debug "tap '$1' at $(((x1 + x2) / 2)),$(((y1 + y2) / 2))"
 			adb shell input tap $(((x1 + x2) / 2)) $(((y1 + y2) / 2))
 			return 0
 		fi
@@ -292,14 +293,13 @@ magisk_additional_setup() {
 	# Notification permission prompt would cover the dialog, permission exists since Android 13
 	adb shell pm grant com.topjohnwu.magisk android.permission.POST_NOTIFICATIONS 2> /dev/null || true
 	open_magisk || true
-	# Taps during dialog animation get ignored, so keep tapping OK until device reboots
+	# Taps during dialog animation can get ignored, so keep tapping OK until device reboots
 	# adb returns nothing or blocks while device goes down, only new boot id means reboot happened
 	end=$((SECONDS + 120))
 	while [ $SECONDS -lt $end ]; do
 		new_boot_id="$(timeout 5 adb shell cat /proc/sys/kernel/random/boot_id 2> /dev/null | grep -oE '^[0-9a-f-]{36}' || true)"
 		[ -n "$new_boot_id" ] && [ "$new_boot_id" != "$boot_id" ] && break
-		# Magisk sometimes completes setup without reboot
-		timeout 5 adb shell command -v su > /dev/null 2>&1 && break
+		# su shows up right after OK, but Magisk reboots a few seconds later anyway, so wait for the reboot
 		tap_node 'text="OK"' 1 && debug "t=$((SECONDS - start))s tapped OK" || true
 		sleep 2
 	done
