@@ -332,15 +332,28 @@ magisk_additional_setup() {
 }
 
 # adb shell su prompts in Magisk app, which is hidden from uiautomator so it can't be granted there
-# Unanswered prompt saves a deny for Shell instead, which can be flipped in Superuser tab
+# Denied prompt saves a deny for Shell instead, which can be flipped in Superuser tab
 grant_shell_root() {
 	echo "[P] Granting root to adb shell..."
 	grant_start=$SECONDS
 	su_out="$(mktemp)"
 	# Right after boot su can be rejected before prompting, so retry
 	for _ in 1 2 3; do
-		# Returns at once when already granted, otherwise waits for prompt to time out
-		adb shell su -c id -u > "$su_out" 2> /dev/null || true
+		# Returns at once when already granted, otherwise waits for prompt, which Back key denies (saved like timeout)
+		adb shell su -c id -u > "$su_out" 2> /dev/null &
+		su_pid=$!
+		for _ in $(seq 30); do
+			kill -0 $su_pid 2> /dev/null || break
+			if adb shell dumpsys window | grep -q 'mCurrentFocus=.*SuRequestActivity'; then
+				sleep 1
+				adb shell input keyevent KEYCODE_BACK
+				debug "t=$((SECONDS - grant_start))s su prompt denied with Back"
+				break
+			fi
+			sleep 0.5
+		done
+		wait $su_pid || true
+		debug "t=$((SECONDS - grant_start))s su result: $(tr -d '\r' < "$su_out")"
 		[ "$(tr -d '\r' < "$su_out")" = 0 ] && break
 		open_magisk || true
 		tap_node 'content-desc="Superuser"' 30 && tap_node 'class="android.widget.Switch"[^>]*checked="false"' 30 || true
