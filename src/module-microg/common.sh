@@ -46,15 +46,35 @@ remove_package_updates() {
 	echo "[I] Done checking package updates."
 }
 
+# Restricted permissions (background location, SMS) can be granted only when allowlisted, which installer does on
+# install but not for system apps replaced by module. Installing own APK as update and removing it keeps the allowlist.
+allowlist_restricted_permissions() {
+	echo "$gms_dump" | grep -q 'APPLY_RESTRICTION' || return 0
+	# microG installed as user update keeps allowlist of its installer, older system APK can't replace it anyway
+	pm path com.google.android.gms | grep -q '/data/app/' && return 0
+	echo -n "[P] Allowlisting restricted permissions... "
+	tmp_apk=/data/local/tmp/noogle-microg.apk
+	if cp "$(pm path com.google.android.gms | head -n 1 | cut -d: -f2)" "$tmp_apk" &&
+		pm install -r "$tmp_apk" > /dev/null && pm uninstall -k --user all com.google.android.gms > /dev/null; then
+		echo "DONE"
+	else
+		echo "FAILED"
+	fi
+	rm -f "$tmp_apk"
+	gms_dump="$(dumpsys package com.google.android.gms)"
+}
+
 grant_microg_permissions() {
 	permissions="ACCESS_COARSE_LOCATION ACCESS_FINE_LOCATION ACCESS_BACKGROUND_LOCATION READ_EXTERNAL_STORAGE WRITE_EXTERNAL_STORAGE GET_ACCOUNTS POST_NOTIFICATIONS READ_PHONE_STATE RECEIVE_SMS SYSTEM_ALERT_WINDOW"
+	gms_dump="$(dumpsys package com.google.android.gms)"
+	allowlist_restricted_permissions
+
 	echo "[P] Checking microG Services permissions..."
 	echo "-------------------------------------------"
 	echo "[M] PERMISSION                       STATUS"
 	echo "-------------------------------------------"
 
 	warn=""
-	gms_dump="$(dumpsys package com.google.android.gms)"
 
 	for perm in $permissions; do
 		# Permissions missing in dump don't exist on this Android version (e.g. POST_NOTIFICATIONS before 13)
@@ -65,7 +85,9 @@ grant_microg_permissions() {
 		else
 			printf "%-31s %s\n" "[W] $perm" "NOT GRANTED"
 			echo -n "|-[P] Granting...                   "
-			if pm grant com.google.android.gms "android.permission.$perm"; then
+			# pm grant succeeds silently for restricted permissions that aren't allowlisted, so check the result
+			if pm grant com.google.android.gms "android.permission.$perm" &&
+				dumpsys package com.google.android.gms | grep "android.permission.$perm: granted=true" > /dev/null; then
 				echo "SUCCESS"
 			else
 				echo " FAILED"

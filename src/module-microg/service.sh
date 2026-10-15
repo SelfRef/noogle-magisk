@@ -4,7 +4,8 @@ MODDIR=${0%/*}
 # Google apps break on data microG inherited from them (e.g. newer database versions), so clear it as soon as
 # package manager is up, before boot completes and apps start using microG
 if [ -f "$MODDIR/clear-data" ]; then
-	until pm path android > /dev/null 2>&1; do sleep 1; done
+	# pm clear also clears notifications, it fails while notification service isn't up yet
+	until pm path android > /dev/null 2>&1 && service check notification | grep -q ': found'; do sleep 1; done
 	for package in $packages; do
 		clear_log="$clear_log
 [I] Clearing $package data: $(pm clear "$package" 2>&1)"

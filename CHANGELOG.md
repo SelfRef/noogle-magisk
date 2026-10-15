@@ -1,4 +1,6 @@
 # Unreleased
+- Background location and SMS permissions of microG are granted properly (they are restricted and need allowlisting)
+- Fixed clearing data of replaced Google apps on first boot (failed when run too early)
 - New Noogle microG Playful variant, keeps Play Store (build option -P bundles Play Store APK for ROMs without it)
 - Versions are release dates now, new microG versions are released automatically
 - Requires Magisk v29.0+
