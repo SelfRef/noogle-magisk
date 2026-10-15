@@ -1,4 +1,5 @@
 # Unreleased
+- Switching between Noogle microG and Playful brings back the right Play Store and clears data of switched apps
 
 # v2026.10.15
 - microG Services 0.3.17.252432, Companion 0.3.17.40226, Services Framework Proxy v0.1.0

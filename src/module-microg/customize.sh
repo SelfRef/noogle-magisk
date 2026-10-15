@@ -21,28 +21,25 @@ fi
 
 remove_package_updates google
 
-# microG inherits data of replaced Google apps, which breaks it (e.g. newer database versions), clear it on
-# first boot when switching from Google. On module update microG is already active and its data is kept.
-if ! is_microg com.google.android.gms; then
-	touch "$MODPATH/clear-data"
-	ui_print "[I] Data of replaced Google apps will be cleared on first boot"
+# Data breaks when an app switches between Google's and microG's version (e.g. newer database versions), so clear
+# it on first boot. Module updates keep it. Services Framework follows Services, microG's one can't be detected.
+companion=false
+case " $packages " in *" com.android.vending "*)
+	case " $keep_updates " in *" com.android.vending "*) ;; *) companion=true ;; esac
+esac
+clear_packages=""
+is_microg com.google.android.gms || clear_packages="com.google.android.gms com.google.android.gsf"
+if pm path com.android.vending > /dev/null 2>&1; then
+	is_microg com.android.vending && vending_microg=true || vending_microg=false
+	[ "$vending_microg" = "$companion" ] || clear_packages="$clear_packages com.android.vending"
+fi
+if [ -n "$clear_packages" ]; then
+	echo $clear_packages > "$MODPATH/clear-data"
+	ui_print "[I] Data of switched apps will be cleared on first boot: $(echo $clear_packages)"
 fi
 
 ui_print ""
 ui_print "[P] Finding Google apps to remove..."
-# Stock app dirs from package manager (incl. hidden system packages behind updates) and whiteouts of
-# already installed module version (package manager sees our replacements then, not the stock dirs)
-stock_dirs="$(for package in $packages; do
-	dumpsys package "$package" | grep -oE 'codePath=/[^ ]+' | cut -d= -f2
-done | grep -v '^/data/')"
-# KernelSU/APatch move partitions out of system/ and overlay metamodules move files to their own dir
-old_whiteouts="$(for dir in "/data/adb/modules/$MODID" "/data/adb/metamodule/mnt/$MODID"; do
-	(cd "$dir" 2> /dev/null && find . -type c | sed -E 's#^\./##; s#^(product|system_ext|vendor)/#system/\1/#; s#^#/#')
-done)"
-
-split_xml=/system/product/etc/permissions/split-permissions-google.xml
-[ -e $split_xml ] || split_xml=""
-
 # Prints APEX file providing given /apex/<name>/... path
 apex_file() {
 	name=${1#/apex/}
@@ -54,7 +51,10 @@ apex_file() {
 	return 1
 }
 
-for dir in $stock_dirs $old_whiteouts $split_xml; do
+# Removes stock path of package and records it, so module update knows what it hid
+# $1: package, $2: device path
+add_target() {
+	dir=$2
 	# Since Android 17 GmsCore comes in APEX, which stays mounted when hidden, but package manager drops its app
 	case $dir in
 		/apex/*) dir="$(apex_file "$dir")" || abort "! APEX providing $dir not found, this device is not supported" ;;
@@ -66,10 +66,42 @@ for dir in $stock_dirs $old_whiteouts $split_xml; do
 		*) abort "! $dir is on a partition modules can't modify, this device is not supported" ;;
 	esac
 	# Skip dirs shipped by module itself (when built without suffix) and duplicates
-	[ -e "$MODPATH$target" ] && continue
-	case " $REMOVE " in *" $target "*) continue ;; esac
+	[ -e "$MODPATH$target" ] && return
+	case " $REMOVE " in *" $target "*) return ;; esac
 	REMOVE="$REMOVE $target"
+	echo "$1 $target" >> "$MODPATH/removed"
+}
+
+# Stock app dirs from package manager, incl. hidden system packages behind updates
+for package in $packages; do
+	for dir in $(dumpsys package "$package" | grep -oE 'codePath=/[^ ]+' | cut -d= -f2 | grep -v '^/data/'); do
+		add_target "$package" "$dir"
+	done
 done
+split_xml=/system/product/etc/permissions/split-permissions-google.xml
+[ -e $split_xml ] && add_target com.google.android.gms $split_xml
+
+# On update package manager sees our replacements, not the stock dirs, so keep removing ones the installed version
+# removed, but only of packages this variant replaces (switching to playful brings Play Store back)
+if [ -f "/data/adb/modules/$MODID/removed" ]; then
+	while read -r package target; do
+		case " $packages " in *" $package "*) add_target "$package" "$target" ;; esac
+	done < "/data/adb/modules/$MODID/removed"
+else
+	# Older versions don't record removed paths, so use their whiteouts.
+	# KernelSU/APatch move partitions out of system/ and overlay metamodules move files to their own dir.
+	old_whiteouts="$(for dir in "/data/adb/modules/$MODID" "/data/adb/metamodule/mnt/$MODID"; do
+		(cd "$dir" 2> /dev/null && find . -type c | sed -E 's#^\./##; s#^(product|system_ext|vendor)/#system/\1/#; s#^#/#')
+	done)"
+	for target in $old_whiteouts; do
+		# ponytail: assumes Play Store in Phonesky dir (Google's name), only matters when switching variant from old version
+		case $target in
+			*/Phonesky) package=com.android.vending ;;
+			*) package=com.google.android.gms ;;
+		esac
+		case " $packages " in *" $package "*) add_target "$package" "$target" ;; esac
+	done
+fi
 ui_print "[I] Google apps are removed by installer below (Remove target)"
 
 ui_print ""

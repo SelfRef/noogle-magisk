@@ -142,7 +142,7 @@ Apps you updated stay installed as regular apps with their data, so you can unin
 Only if your ROM doesn't support signature spoofing, which is the case for every stock Android. Check the top of microG Self-Check, if spoofing is ticked, you don't need them.
 
 #### Can I use the real Play Store instead of microG Companion?
-Yes, install `noogle-microg-playful`, it keeps Play Store of your ROM. If your ROM has no Play Store, build the [playful variant](#playful-variant) with Play Store APK. Aurora Store works with both variants too.
+Yes, install `noogle-microg-playful`, it keeps Play Store of your ROM. You can switch between variants anytime by installing the other one over it. If your ROM has no Play Store, build the [playful variant](#playful-variant) with Play Store APK. Aurora Store works with both variants too.
 
 #### How do I update microG?
 Module updates with new microG versions come through Magisk app. You can also install microG updates from microG F-Droid repo on top of the module, or [build the module](#build) yourself, `scripts/pull-microg.sh` downloads the latest microG.
