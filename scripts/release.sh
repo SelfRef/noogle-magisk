@@ -8,7 +8,8 @@ set -e
 version="v$(date -u +%Y.%m.%d)"
 repo_url=https://github.com/SelfRef/noogle-magisk
 
-./scripts/pull-microg.sh
+# Lock only first, microG APKs are pulled only when there is something to release
+./scripts/pull-microg.sh -l
 
 unreleased="$(sed -n '/^# Unreleased$/,/^# v/{/^# /d;/^$/d;p}' CHANGELOG.md)"
 if git diff --quiet microg.lock && [ -z "$unreleased" ]; then
@@ -59,6 +60,13 @@ for module in microg microg-playful unbundle; do
 EOF
 done
 
+checked_lock="$(cat microg.lock)"
+./scripts/pull-microg.sh
+# New permissions were checked against the lock above, a microG update in between would skip that check
+if [ "$(cat microg.lock)" != "$checked_lock" ]; then
+	echo "[C] microG got updated during release, try again"
+	exit 1
+fi
 ./scripts/build-noogle-microg.sh
 ./scripts/build-noogle-microg.sh -p
 ./scripts/build-noogle-unbundle.sh

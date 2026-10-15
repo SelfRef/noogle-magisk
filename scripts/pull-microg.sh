@@ -8,18 +8,21 @@ apk_dir=apk
 packages=(com.google.android.gms com.android.vending com.google.android.gsf)
 attempts=5
 wait_time=10
+lock_only=false
 
 show_help() {
 	echo "Usage: $0 [options]"
 	echo "Pulls latest microG APKs into $apk_dir/, skips ones already pulled and verified."
 	echo "Options:"
 	echo "  -h          Show this help message"
+	echo "  -l          Only update microg.lock, don't pull APKs"
 	exit "${1:-0}"
 }
 
-while getopts "h" opt; do
+while getopts "hl" opt; do
 	case $opt in
 		h) show_help ;;
+		l) lock_only=true ;;
 		*) show_help 1 ;;
 	esac
 done
@@ -69,14 +72,16 @@ for pkg in "${packages[@]}"; do
 	fi
 	echo "[I] $pkg: latest $version"
 
-	apk="$apk_dir/${name#/}"
-	if [ -f "$apk" ] && sha256sum -c --status <<< "$sha256  $apk"; then
-		echo "[I] Already pulled and verified"
-	else
-		download "$repo_url$name" "$sha256" "$apk"
+	if [ "$lock_only" = false ]; then
+		apk="$apk_dir/${name#/}"
+		if [ -f "$apk" ] && sha256sum -c --status <<< "$sha256  $apk"; then
+			echo "[I] Already pulled and verified"
+		else
+			download "$repo_url$name" "$sha256" "$apk"
+		fi
+		# Build requires exactly one APK per package
+		find "$apk_dir" -name "$pkg-*.apk" ! -path "$apk" -delete
 	fi
-	# Build requires exactly one APK per package
-	find "$apk_dir" -name "$pkg-*.apk" ! -path "$apk" -delete
 	# Byte order sort, locale order differs between machines and would show moved lines as new permissions
 	lock="$lock$pkg version $version
 $(jq -r --arg p "$pkg" '"\($p) permission \(.manifest.usesPermission[]?.name)"' <<< "$latest" | LC_ALL=C sort -u)
@@ -86,4 +91,4 @@ done
 # Release script checks it for new microG versions and permissions (new privileged ones need allowlisting)
 printf %s "$lock" > microg.lock
 
-echo "[I] All microG APKs are ready!"
+[ "$lock_only" = true ] && echo "[I] microg.lock updated" || echo "[I] All microG APKs are ready!"
