@@ -56,9 +56,9 @@ com.google.android.gms permission android.permission.WRITE_EXTERNAL_STORAGE
 com.google.android.gms permission android.permission.WRITE_SYNC_SETTINGS
 com.google.android.gms permission com.google.android.c2dm.permission.RECEIVE
 com.google.android.gms permission com.google.android.c2dm.permission.SEND
+com.google.android.gms permission com.google.android.gms.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
 com.google.android.gms permission com.google.android.gms.auth.api.phone.permission.SEND
 com.google.android.gms permission com.google.android.gms.auth.permission.GOOGLE_ACCOUNT_CHANGE
-com.google.android.gms permission com.google.android.gms.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
 com.google.android.gms permission com.google.android.gms.locationsharingreporter.periodic.STATUS_UPDATE
 com.google.android.gms permission com.google.android.gms.nearby.exposurenotification.EXPOSURE_CALLBACK
 com.google.android.gms permission com.google.android.gms.permission.AD_ID

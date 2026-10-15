@@ -77,8 +77,9 @@ for pkg in "${packages[@]}"; do
 	fi
 	# Build requires exactly one APK per package
 	find "$apk_dir" -name "$pkg-*.apk" ! -path "$apk" -delete
+	# Byte order sort, locale order differs between machines and would show moved lines as new permissions
 	lock="$lock$pkg version $version
-$(jq -r --arg p "$pkg" '"\($p) permission \(.manifest.usesPermission[]?.name)"' <<< "$latest" | sort -u)
+$(jq -r --arg p "$pkg" '"\($p) permission \(.manifest.usesPermission[]?.name)"' <<< "$latest" | LC_ALL=C sort -u)
 "
 done
 
