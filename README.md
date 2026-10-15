@@ -14,6 +14,9 @@ Noogle Unbundle | Removes other Google apps from system, like Chrome, Gmail, Map
 
 It requires Magisk v29.0 or newer. If you don't have it yet, consult the [official installation instructions](https://topjohnwu.github.io/Magisk/install.html).
 
+> [!WARNING]
+> Modules are mainly tested on Android emulators (Google Play images). Real devices and vendor ROMs may behave differently, please report any issues you hit.
+
 > [!TIP]
 > It's a good idea to enable ADB debugging as well before installing in case of any issues.
 
