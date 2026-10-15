@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Added only to builds bundling Play Store (-P), ROMs with Play Store have it in google.xml.
+    Play Store downloads apps in a systemExempted foreground service, which crashes unless the app is in power save allowlist.
+-->
+<config>
+    <allow-in-power-save-except-idle package="com.android.vending" />
+</config>

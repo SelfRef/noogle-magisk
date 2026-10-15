@@ -6,7 +6,8 @@ Magisk modules for removing/replacing Google applications on stock Android 11-17
 
 Name | Description
 --- | ---
-Noogle microG | Installs microG Services in place of Google Services (if present)
+Noogle microG | Installs microG Services in place of Google Services (if present) and microG Companion in place of Play Store
+Noogle microG Playful | Same, but keeps Play Store
 Noogle Debloat [WIP] | Removes other Google system apps from Android (still can be installed from store)
 
 ## Install
@@ -20,12 +21,15 @@ It requires Magisk v29.0 or newer. If you don't have it yet, consult the [offici
 > KernelSU and APatch are supported too, but tested less than Magisk. Recent versions (KernelSU v3.0+, APatch 11219+) need a metamodule installed first, like meta-overlayfs, otherwise the module files are not mounted. On KernelSU disable "Umount modules" in App Profile of microG Services, microG Companion and Services Framework Proxy.
 
 1. Download latest version from [releases](https://github.com/SelfRef/noogle-magisk/releases)
+    - `noogle-microg` replaces Play Store with microG Companion, use [Aurora Store](https://auroraoss.com) for apps
+    - `noogle-microg-playful` keeps Play Store of your ROM, for ROMs without it see [playful build](#playful-variant)
 2. Install through Magisk app
 3. Reboot, microG permissions are granted automatically on first boot
 4. Ensure all permission boxes are checked in microG Self-Check
     - If not, click "Action" button next to module in Magisk to grant them again, or tap them in Self-Check
 5. Check signature spoofing status at the top of Self-Check
     - If your ROM doesn't support signature spoofing, you must add it: [check troubleshooting](#signatures-are-not-correct)
+6. Playful only: enable Google device registration in microG settings, Play Store doesn't work without it
 
 ## Build
 
@@ -36,6 +40,13 @@ Requires Linux, Mac or WSL on Windows with `bash`, `zip`, `curl` and `jq`.
 2. Run `scripts/build-noogle-microg.sh`
     - Module will be created in `dist/`
     - Check `-h` flag for build options, like destination partition
+
+### Playful variant
+
+- `scripts/build-noogle-microg.sh -p` builds playful variant, which keeps Play Store of your ROM
+- `scripts/build-noogle-microg.sh -P <apk>` builds playful variant with given Play Store APK, for ROMs without Play Store (e.g. LineageOS)
+    - Play Store APK must support your Android version (newer ones need Android 12+)
+    - This build is not updated by Magisk, as released playful builds don't contain Play Store
 
 ### Install from PC
 
@@ -66,13 +77,14 @@ Stock Android and most other ROMs don't support it, so it has to be added with a
 
 1. Enable Zygisk in Magisk's settings
 2. Download and install [Vector](https://github.com/JingMatrix/Vector/releases) (formerly LSPosed) through Magisk
+    - Android 17 doesn't work yet, Vector can't load into the system there
 3. Download and install [FakeGApps](https://github.com/whew-inc/FakeGApps/releases) APK
     - Supports up to Android 16, Android 17 is not confirmed yet
 4. Reboot
 5. Open Vector from notifications, enable FakeGApps in Modules and select System Framework as its only scope
     - System Framework is hidden by default, show it with Filter > What the module asks for
     - Tap Apply to save the scope
-6. Reboot
+6. Reboot, or tap Soft reboot in the dialog after Apply
 7. Check in microG Self-Check if signatures are correct now
 8. Optionally install Play Integrity Fix through Magisk, original is discontinued, use one of the maintained forks:
     - [PlayIntegrityFork](https://github.com/osm0sis/PlayIntegrityFork) by osm0sis
@@ -81,6 +93,9 @@ Stock Android and most other ROMs don't support it, so it has to be added with a
 Other ways you may find:
 - ROM patchers (Haystack, NanoDroid-patcher, Tingle) work properly only below Android 9
 - microG APKs with signature blocks copied from Google APKs don't need spoofing, but can't be updated as user apps
+
+### Play Store shows "Server error" or DF-DFERH-01
+Enable Google device registration in microG settings and restart Play Store.
 
 ### microG crashing
 If microG crashes when used with other modules interacting with it, like Play Integrity Fix, install both microG Services and microG Companion (same APKs as in this module, from [official site](https://microg.org/download.html)) on top, as user updates. This should not be needed with recent versions, but may help on some devices.
@@ -109,7 +124,7 @@ If you don't have ADB enabled, you may try to restart the device a few times (ho
 - A: Module updates come through Magisk app with new microG versions. If you want newer microG sooner, install microG updates from microG F-Droid repo on top of the module, or [build the module](#build) yourself, `scripts/pull-microg.sh` downloads the latest microG.
 
 - Q: Can I use the real Play Store instead of microG Companion?
-- A: The module replaces Play Store with microG Companion. Aurora Store works with microG out of the box. Users reported that the real Play Store works too, when its APK is put in `apk/` in place of microG Companion before [building](#build). Uninstall the old module first, updating over it is not enough.
+- A: Yes, install `noogle-microg-playful`, it keeps Play Store of your ROM. If your ROM has no Play Store, build the [playful variant](#playful-variant) with Play Store APK. Aurora Store works with both variants too.
 
 - Q: Logging in to Google account fails with "There was a problem communicating with Google servers"
 - A: Update microG to the latest version (see above). If you use a firewall, allow network access for microG Services, it's a separate app from Google's one.

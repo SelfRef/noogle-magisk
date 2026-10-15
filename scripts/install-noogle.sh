@@ -15,14 +15,17 @@ show_help() {
 	echo "  -y            Don't ask for confirmations"
 	echo "  -d <dir>      Passed to build: destination partition [system|product|system_ext]"
 	echo "  -s <suffix>   Passed to build: suffix added to app directories and APK names"
+	echo "  -p            Passed to build: playful variant keeping device's Play Store"
+	echo "  -P <apk>      Passed to build: playful variant with given Play Store APK"
 	exit "${1:-0}"
 }
 
-while getopts "hyd:s:" opt; do
+while getopts "hyd:s:pP:" opt; do
 	case $opt in
 		h) show_help ;;
 		y) skip_confirmations=true ;;
-		d|s) build_args+=("-$opt" "$OPTARG") ;;
+		d|s|P) build_args+=("-$opt" "$OPTARG") ;;
+		p) build_args+=(-p) ;;
 		*) show_help 1 ;;
 	esac
 done

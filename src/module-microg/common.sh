@@ -1,5 +1,7 @@
-# Packages replaced by the module
+# Packages replaced by the module, playful build keeps Play Store (com.android.vending)
 packages="com.google.android.gms com.android.vending com.google.android.gsf"
+# Packages whose Google updates are kept, playful build bundling real Play Store sets it
+keep_updates=""
 
 # Checks if active version of package is microG (it requests signature spoofing permission)
 # $1: package
@@ -16,6 +18,7 @@ remove_package_updates() {
 	echo "[M] PACKAGE WITH UPDATE                TYPE"
 	echo "-------------------------------------------"
 	for package in $packages; do
+		case " $keep_updates " in *" $package "*) continue ;; esac
 		# Check if package update from Google version is installed
 		path=$(pm path "$package" | grep "/data/app/" | sed -E 's/package:(\/data\/app\/[^/]+).*/\1/' | uniq)
 		microg_type=$(is_microg "$package" && echo "true" || echo "false")

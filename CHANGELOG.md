@@ -1,4 +1,5 @@
 # Unreleased
+- New Noogle microG Playful variant, keeps Play Store (build option -P bundles Play Store APK for ROMs without it)
 - Versions are release dates now, new microG versions are released automatically
 - Requires Magisk v29.0+
 - Updated privileged permissions for current microG (fixes bootloop with microG 0.3.12+)

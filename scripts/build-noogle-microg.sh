@@ -9,6 +9,8 @@ dist_dir=dist
 module_dir=module-microg
 destination_dir=system/product
 suffix=MG
+variant=""
+playstore_apk=""
 # package => system app name
 declare -A apps=(
 	[com.google.android.gms]=GmsCore
@@ -24,10 +26,12 @@ show_help() {
 	echo "  -h            Show this help message"
 	echo "  -d <dir>      Destination partition [system|product|system_ext] (default: product)"
 	echo "  -s <suffix>   Suffix added to app directories and APK names (default: MG)"
+	echo "  -p            Playful variant: keep device's Play Store instead of installing microG Companion"
+	echo "  -P <apk>      Playful variant with given Play Store APK, for ROMs without Play Store (e.g. LineageOS)"
 	exit "${1:-0}"
 }
 
-while getopts "hd:s:" opt; do
+while getopts "hd:s:pP:" opt; do
 	case $opt in
 		h) show_help ;;
 		d)
@@ -42,13 +46,19 @@ while getopts "hd:s:" opt; do
 			esac
 			;;
 		s) suffix="$OPTARG" ;;
+		p) variant=playful ;;
+		P)
+			variant=playful
+			playstore_apk="$OPTARG"
+			[ -f "$playstore_apk" ] || { echo "[C] Play Store APK not found: $playstore_apk"; exit 1; }
+			;;
 		*) show_help 1 ;;
 	esac
 done
 
 # Date based version, Magisk offers update when versionCode grows
 module_version="v$(date -u +%Y.%m.%d)"
-module_filename="noogle-microg-$module_version.zip"
+module_filename="noogle-microg${variant:+-$variant}${playstore_apk:+-playstore}-$module_version.zip"
 
 echo "[P] Building module noogle-microg $module_version..."
 start=$SECONDS
@@ -56,7 +66,12 @@ rm -rf "$module_dir"
 mkdir -p "$module_dir"
 
 for pkg in "${!apps[@]}"; do
-	apks=("$apk_dir/$pkg"*.apk)
+	if [ "$variant" = playful ] && [ "$pkg" = com.android.vending ]; then
+		[ -n "$playstore_apk" ] || continue
+		apks=("$playstore_apk")
+	else
+		apks=("$apk_dir/$pkg"*.apk)
+	fi
 	if [ ! -f "${apks[0]}" ]; then
 		echo "[P!] $pkg: missing in $apk_dir/, run scripts/pull-microg.sh or download from https://microg.org/download.html"
 		exit 1
@@ -73,6 +88,21 @@ done
 cp -r "$src_dir/$module_dir"/* "$module_dir/"
 mv "$module_dir/etc" "$module_dir/$destination_dir/"
 printf '\nversion=%s\nversionCode=%s\n' "$module_version" "$(date -u +%Y%m%d)" >> "$module_dir/module.prop"
+
+# Play Store configs are needed only when bundling it, ROMs with Play Store have their own
+[ -n "$playstore_apk" ] || find "$module_dir/$destination_dir/etc" -name '*-playstore.xml' -delete
+if [ "$variant" = playful ]; then
+	sed -i 's/^name=.*/& Playful/; s/^description=.*/description=Replaces Google Services with microG, keeps Play Store/' "$module_dir/module.prop"
+	if [ -n "$playstore_apk" ]; then
+		# Play Store is replaced (stock one removed if present), but its own updates are kept
+		sed -i 's/^keep_updates=.*/keep_updates="com.android.vending"/' "$module_dir/common.sh"
+		# Released playful builds don't contain Play Store, updating to them would remove it
+		sed -i '/^updateJson=/d' "$module_dir/module.prop"
+	else
+		sed -i 's/^packages=.*/packages="com.google.android.gms com.google.android.gsf"/' "$module_dir/common.sh"
+		sed -i 's/update-microg.json/update-microg-playful.json/' "$module_dir/module.prop"
+	fi
+fi
 
 gms_dir="$destination_dir/priv-app/GmsCore$suffix"
 sed -i "1i gms_path=$gms_dir/GmsCore$suffix.apk" "$module_dir/customize.sh"
