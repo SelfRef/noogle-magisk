@@ -19,6 +19,10 @@
 # - Debug output of UI automation: DEBUG=1 ./scripts/setup-avd.sh
 # - UI can be inspected with: adb exec-out uiautomator dump /dev/tty, adb exec-out screencap -p > screen.png
 # - In Magisk DB policies, shell is uid 2000: adb shell "su -c \"magisk --sqlite 'SELECT * FROM policies'\""
+# - Snapshot keeps whole /data, check /data/adb/modules is empty before saving it as clean state.
+# - Signature spoofing for tests: Vector (Magisk module) + FakeGApps scoped to System Framework, see README.
+#   Vector manager runs in com.android.shell, opened from its notification, Apply offers soft reboot.
+# - Real Play Store with microG needs Google device registration enabled in microG, otherwise DF-DFERH-01.
 
 set -e
 
@@ -26,6 +30,7 @@ android_version=15
 avd_name=""
 action=setup
 headless=false
+image=google_apis_playstore
 snapshot=clean
 sdk_dir="${ANDROID_HOME:-$HOME/Android/Sdk}"
 rootavd_dir="${XDG_CACHE_HOME:-$HOME/.cache}/rootAVD"
@@ -41,6 +46,7 @@ show_help() {
 	echo "  -v <version>  Android version [11|12|12L|13|14|15|16|17], comma separated list or 'all' (default: 15)"
 	echo "  -n <name>     AVD name (default: noogle-<version>)"
 	echo "  -H            Run headless (no window)"
+	echo "  -a            Use AOSP image without Google apps (AVD noogle-<version>-aosp, port +20)"
 	echo "  -S            Save running emulator state as '$snapshot' snapshot"
 	echo "  -r            Reset to '$snapshot' snapshot (wipes data if there is none)"
 	echo "  -R            Recreate: delete AVD, unroot image and set everything up again"
@@ -50,13 +56,14 @@ show_help() {
 	exit "${1:-0}"
 }
 
-while getopts "hv:n:m:HSrRk" opt; do
+while getopts "hv:n:m:HSrRka" opt; do
 	case $opt in
 		h) show_help ;;
 		v) android_version="$OPTARG" ;;
 		n) avd_name="$OPTARG" ;;
 		m) magisk_release="tags/$OPTARG" ;;
 		H) headless=true ;;
+		a) image=default ;;
 		S) action=save ;;
 		r) action=reset ;;
 		R) action=recreate ;;
@@ -75,7 +82,7 @@ if [ "$android_version" = all ] || [[ $android_version == *,* ]]; then
 	IFS=, read -ra versions <<< "$android_version"
 	if [ "$action" = setup ] || [ "$action" = recreate ]; then
 		for version in "${versions[@]}"; do
-			ONLY_DEPS=1 "$0" -v "$version" | sed -u -E "s/^(\[[A-Z]+[+!-]?\](\[[0-9]+s\])?) /\1 Android $version: /"
+			ONLY_DEPS=1 "$0" -v "$version" $([ "$image" = default ] && echo -a) | sed -u -E "s/^(\[[A-Z]+[+!-]?\](\[[0-9]+s\])?) /\1 Android $version: /"
 		done
 	fi
 	for version in "${versions[@]}"; do
@@ -102,8 +109,13 @@ case $android_version in
 		;;
 esac
 
+# AOSP image has its own AVD and port, so it can run next to Google Play one
+if [ "$image" = default ]; then
+	port=$((port + 20))
+	avd_name="${avd_name:-noogle-$android_version-aosp}"
+fi
 avd_name="${avd_name:-noogle-$android_version}"
-image_path="system-images/android-$api/google_apis_playstore/x86_64"
+image_path="system-images/android-$api/$image/x86_64"
 image_pkg="$(echo "$image_path" | tr '/' ';')"
 ramdisk="$sdk_dir/$image_path/ramdisk.img"
 avd_dir="${ANDROID_AVD_HOME:-$HOME/.android/avd}/$avd_name.avd"
@@ -141,11 +153,14 @@ start_emulator() {
 	else
 		echo "[P] Starting emulator $avd_name (log: $log_dir/emulator-$avd_name.log)..."
 		mkdir -p "$log_dir"
+		# Allow typing with PC keyboard in emulator window
+		sed -i 's/^hw.keyboard=no$/hw.keyboard=yes/' "$avd_dir/config.ini"
 		# netsimd WiFi packet streamer shared by emulators makes the next ones hang and crash, built-in WiFi works fine
 		args=(-avd "$avd_name" -port "$port" -no-snapshot-save -crash-report-mode never -no-metrics \
 			-feature -WiFiPacketStream "$@")
 		[ "$headless" = true ] && args+=(-no-window)
-		nohup emulator "${args[@]}" \
+		# Own session, so emulator survives when the calling shell gets interrupted
+		setsid nohup emulator "${args[@]}" \
 			> "$log_dir/emulator-$avd_name.log" 2>&1 &
 	fi
 	until [ "$(adb shell getprop sys.boot_completed 2> /dev/null | tr -d '\r')" = 1 ]; do
@@ -323,6 +338,11 @@ open_magisk() {
 	return 1
 }
 
+# AOSP images have their own su in /system/xbin, Magisk one reports its version
+has_magisk_su() {
+	adb shell su -v 2> /dev/null | grep -q MAGISK
+}
+
 # Magisk app asks for additional setup on first launch and reboots after it
 magisk_additional_setup() {
 	if ! adb shell pm path com.topjohnwu.magisk > /dev/null 2>&1; then
@@ -330,7 +350,7 @@ magisk_additional_setup() {
 		adb install "$magisk_apk" > /dev/null
 		echo "[P+] Magisk app installed"
 	fi
-	adb shell command -v su > /dev/null 2>&1 && return 0
+	has_magisk_su && return 0
 	echo "[P] Running Magisk additional setup..."
 	start=$SECONDS
 	boot_id="$(adb shell cat /proc/sys/kernel/random/boot_id | grep -oE '^[0-9a-f-]{36}')"
@@ -349,7 +369,7 @@ magisk_additional_setup() {
 	done
 	# Wait for boot to finish in case device rebooted
 	start_emulator
-	if adb shell command -v su > /dev/null 2>&1; then
+	if has_magisk_su; then
 		echo "[P+][$((SECONDS - start))s] Additional setup done"
 	else
 		echo "[P!] Magisk additional setup didn't complete"
