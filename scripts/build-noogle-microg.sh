@@ -85,6 +85,26 @@ for pkg in "${!apps[@]}"; do
 	cp "${apks[0]}" "$module_dir/$destination_dir/priv-app/$app/$app.apk"
 done
 
+# Services Framework Proxy is only v1 signed, which some ROMs may reject. Re-sign it with a throwaway key, so nobody
+# can sign updates for it (microG doesn't check its signature, Android accepts changed signatures of system apps).
+gsf_apk="$module_dir/$destination_dir/priv-app/GoogleServicesFramework$suffix/GoogleServicesFramework$suffix.apk"
+apksigner="$(command -v apksigner || ls "${ANDROID_HOME:-$HOME/Android/Sdk}"/build-tools/*/apksigner 2> /dev/null | sort -V | tail -1)"
+if [ -n "$apksigner" ] && command -v keytool > /dev/null; then
+	keystore="$(mktemp -u).p12"
+	KEY_PASS="$(head -c 32 /dev/urandom | base64)" && export KEY_PASS
+	keytool -genkeypair -keystore "$keystore" -storetype PKCS12 -storepass:env KEY_PASS -alias noogle \
+		-keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Noogle" > /dev/null 2>&1
+	"$apksigner" -J-enable-native-access=ALL-UNNAMED sign --ks "$keystore" --ks-pass env:KEY_PASS "$gsf_apk"
+	rm -f "$keystore" "$gsf_apk.idsig"
+	unset KEY_PASS
+	echo "[I] Re-signed ${gsf_apk##*/} with throwaway key"
+elif [ -n "$REQUIRE_SIGNING" ]; then
+	echo "[C] apksigner (Android SDK build-tools) or keytool (JDK) not found, required for release"
+	exit 1
+else
+	echo "[W] apksigner (Android SDK build-tools) or keytool (JDK) not found, ${gsf_apk##*/} keeps v1 signature only"
+fi
+
 cp -r "$src_dir/$module_dir"/* "$module_dir/"
 mv "$module_dir/etc" "$module_dir/$destination_dir/"
 printf '\nversion=%s\nversionCode=%s\n' "$module_version" "$(date -u +%Y%m%d)" >> "$module_dir/module.prop"

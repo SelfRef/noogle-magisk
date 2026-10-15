@@ -67,6 +67,7 @@ if [ "$(cat microg.lock)" != "$checked_lock" ]; then
 	echo "[C] microG got updated during release, try again"
 	exit 1
 fi
+export REQUIRE_SIGNING=1
 ./scripts/build-noogle-microg.sh
 ./scripts/build-noogle-microg.sh -p
 ./scripts/build-noogle-unbundle.sh

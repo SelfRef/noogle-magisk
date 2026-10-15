@@ -37,7 +37,7 @@ It requires Magisk v29.0 or newer. If you don't have it yet, consult the [offici
 
 ## Build
 
-Requires Linux, Mac or WSL on Windows with `bash`, `zip`, `curl` and `jq`.
+Requires Linux, Mac or WSL on Windows with `bash`, `zip`, `curl` and `jq`. Optionally `apksigner` (Android SDK build-tools) and `keytool` (JDK) to re-sign Services Framework Proxy with newer signature schemes, which some ROMs may require.
 
 1. Run `scripts/pull-microg.sh` to download latest microG APKs to `apk/` and verify their checksums
     - Or [download them manually](https://microg.org/download.html) and place in `apk/` directory
