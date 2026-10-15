@@ -21,7 +21,7 @@ It requires Magisk v29.0 or newer. If you don't have it yet, consult the [offici
 > It's a good idea to enable ADB debugging as well before installing in case of any issues.
 
 > [!NOTE]
-> KernelSU and APatch are supported too, but tested less than Magisk. Recent versions (KernelSU v3.0+, APatch 11219+) need a metamodule installed first, like meta-overlayfs, otherwise the module files are not mounted. On KernelSU disable "Umount modules" in App Profile of microG Services, microG Companion and Services Framework Proxy.
+> KernelSU and APatch are supported too, but tested less than Magisk. Recent versions (KernelSU v3.0+, APatch 11219+) need a metamodule installed first (e.g. meta-overlayfs or NoMount, which one works best depends on the device), otherwise the module files are not mounted. On KernelSU disable "Umount modules" in App Profile of microG Services, microG Companion and Services Framework Proxy.
 
 1. Download latest version from [releases](https://github.com/SelfRef/noogle-magisk/releases)
     - `noogle-microg` replaces Play Store with microG Companion, use [Aurora Store](https://auroraoss.com) for apps
