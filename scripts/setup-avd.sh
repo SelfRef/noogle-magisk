@@ -4,7 +4,7 @@
 # Workflow: run without options (fully unattended, ~3 min first time), save clean state with -S,
 # test with install-noogle.sh, go back with -r. With a real device connected too: export ANDROID_SERIAL=emulator-5554
 # Logs: logs/emulator-<avd>.log, logs/rootavd-<avd>.log. SDK in ~/Android/Sdk, rootAVD in ~/.cache/rootAVD.
-# Each Android version has its own port (15 is emulator-5554), so versions can be set up and run in parallel.
+# Each Android version has its own port (15 is emulator-5554), so versions can run in parallel: -v all or -v 11,15
 # Parallel emulators need WiFiPacketStream feature off (done here), otherwise shared netsimd makes them hang
 # ("hanging thread" in log) and crash.
 #
@@ -38,7 +38,7 @@ show_help() {
 	echo "Sets up, roots (Magisk via rootAVD) and starts the emulator. Safe to re-run."
 	echo "Options:"
 	echo "  -h            Show this help message"
-	echo "  -v <version>  Android version [11|12|12L|13|14|15|16|17] (default: 15)"
+	echo "  -v <version>  Android version [11|12|12L|13|14|15|16|17], comma separated list or 'all' (default: 15)"
 	echo "  -n <name>     AVD name (default: noogle-<version>)"
 	echo "  -H            Run headless (no window)"
 	echo "  -S            Save running emulator state as '$snapshot' snapshot"
@@ -64,6 +64,28 @@ while getopts "hv:n:m:HSrRk" opt; do
 		*) show_help 1 ;;
 	esac
 done
+
+# Several versions: each runs in background, shared SDK and rootAVD are prepared first one by one
+if [ "$android_version" = all ] || [[ $android_version == *,* ]]; then
+	[ "$android_version" = all ] && android_version=11,12,13,14,15,16,17
+	if [ -n "$avd_name" ]; then
+		echo "[C] -n can't be used with multiple versions"
+		exit 1
+	fi
+	IFS=, read -ra versions <<< "$android_version"
+	if [ "$action" = setup ] || [ "$action" = recreate ]; then
+		for version in "${versions[@]}"; do
+			ONLY_DEPS=1 "$0" -v "$version" | sed -u -E "s/^(\[[A-Z]+[+!-]?\](\[[0-9]+s\])?) /\1 Android $version: /"
+		done
+	fi
+	for version in "${versions[@]}"; do
+		# Last -v wins, so other options are passed as given
+		SKIP_DEPS=1 "$0" "$@" -v "$version" 2>&1 \
+			| sed -u -E "s/^(\[[A-Z]+[+!-]?\](\[[0-9]+s\])?) /\1 Android $version: /" &
+	done
+	wait
+	exit
+fi
 
 case $android_version in
 	11) api=30 port=5556 ;;
@@ -410,7 +432,8 @@ case $action in
 		echo "[P+] AVD deleted, image unrooted"
 		;&
 	setup)
-		install_deps
+		[ "$SKIP_DEPS" = 1 ] || install_deps
+		[ "$ONLY_DEPS" = 1 ] && exit 0
 		create_avd
 		root_image
 		start_emulator -no-snapshot-load
