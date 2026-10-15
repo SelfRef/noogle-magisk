@@ -3,8 +3,6 @@
 
 set -e
 
-module_version="$(grep '^version=' src/module-microg/module.prop | cut -d'=' -f2)"
-module_filename="noogle-microg-$module_version.zip"
 skip_confirmations=false
 build_args=()
 
@@ -35,6 +33,7 @@ confirm() {
 }
 
 ./scripts/build-noogle-microg.sh "${build_args[@]}"
+module_filename="$(cd dist && ls -t *.zip | head -1)"
 
 confirm "Install $module_filename on $(adb get-serialno)?"
 echo "[P] Installing module..."

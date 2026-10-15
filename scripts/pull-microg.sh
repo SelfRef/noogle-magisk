@@ -58,10 +58,11 @@ fi
 index="$(cat "$tmp")"
 echo "[P+] Repo index fetched"
 
+lock=""
 for pkg in "${packages[@]}"; do
-	read -r name sha256 version < <(jq -r --arg p "$pkg" '.packages[$p].versions // {} | to_entries
-		| max_by(.value.manifest.versionCode) // empty | .value
-		| "\(.file.name) \(.file.sha256) \(.manifest.versionName)"' <<< "$index")
+	latest="$(jq --arg p "$pkg" '.packages[$p].versions // {} | to_entries
+		| max_by(.value.manifest.versionCode) // empty | .value' <<< "$index")"
+	read -r name sha256 version < <(jq -r '"\(.file.name) \(.file.sha256) \(.manifest.versionName)"' <<< "$latest")
 	if [ -z "$name" ]; then
 		echo "[C] $pkg not found in repo index"
 		exit 1
@@ -76,6 +77,12 @@ for pkg in "${packages[@]}"; do
 	fi
 	# Build requires exactly one APK per package
 	find "$apk_dir" -name "$pkg-*.apk" ! -path "$apk" -delete
+	lock="$lock$pkg version $version
+$(jq -r --arg p "$pkg" '"\($p) permission \(.manifest.usesPermission[]?.name)"' <<< "$latest" | sort -u)
+"
 done
+
+# Release script checks it for new microG versions and permissions (new privileged ones need allowlisting)
+printf %s "$lock" > microg.lock
 
 echo "[I] All microG APKs are ready!"

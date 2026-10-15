@@ -1,0 +1,37 @@
+name: Release
+
+# Daily check for microG updates and unreleased changes, see scripts/release.sh
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Prepare release
+        run: scripts/release.sh
+
+      - name: Publish release
+        if: hashFiles('dist/release-notes.md') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(jq -r .version update-microg.json)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore(release): $version"
+          git tag "$version"
+          git push origin "$version"
+          gh release create "$version" "dist/noogle-microg-$version.zip" \
+            --title "Noogle microG $version" --notes-file dist/release-notes.md
+          # Last, Magisk reads update-microg.json from master, so the release must exist first
+          git push origin HEAD:master

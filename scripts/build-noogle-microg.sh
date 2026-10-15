@@ -46,7 +46,8 @@ while getopts "hd:s:" opt; do
 	esac
 done
 
-module_version="$(grep '^version=' "$src_dir/$module_dir/module.prop" | cut -d'=' -f2)"
+# Date based version, Magisk offers update when versionCode grows
+module_version="v$(date -u +%Y.%m.%d)"
 module_filename="noogle-microg-$module_version.zip"
 
 echo "[P] Building module noogle-microg $module_version..."
@@ -71,6 +72,7 @@ done
 
 cp -r "$src_dir/$module_dir"/* "$module_dir/"
 mv "$module_dir/etc" "$module_dir/$destination_dir/"
+printf '\nversion=%s\nversionCode=%s\n' "$module_version" "$(date -u +%Y%m%d)" >> "$module_dir/module.prop"
 
 gms_dir="$destination_dir/priv-app/GmsCore$suffix"
 sed -i "1i gms_path=$gms_dir/GmsCore$suffix.apk" "$module_dir/customize.sh"

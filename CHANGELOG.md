@@ -1,4 +1,5 @@
 # Unreleased
+- Versions are release dates now, new microG versions are released automatically
 - Requires Magisk v29.0+
 - Updated privileged permissions for current microG (fixes bootloop with microG 0.3.12+)
 - Google apps to remove are detected on device instead of fixed paths (fixes Google Services Framework not removed)
