@@ -8,7 +8,7 @@ Name | Description
 --- | ---
 Noogle microG | Installs microG Services in place of Google Services (if present) and microG Companion in place of Play Store
 Noogle microG Playful | Same, but keeps Play Store
-Noogle Debloat [WIP] | Removes other Google system apps from Android (still can be installed from store)
+Noogle Debloat | Not released yet, will remove other Google system apps (still installable from store)
 
 ## Install
 
@@ -114,27 +114,43 @@ More nuclear option is to run `adb shell magisk --remove-modules`. It will remov
 If you don't have ADB enabled, you may try to restart the device a few times (holding Power + Vol-) while keeping Vol- for a while until animated boot animation starts. This will trigger Magisk safe mode and modules will be disabled. More about this in [official documentation](https://topjohnwu.github.io/Magisk/faq.html).
 
 ## Q&A
-- Q: What is the difference between this and other microG installers?
-- A: This module aims for stock Android support with Google apps preinstalled and doesn't require debloating Google apps first. Should work on AOSP-based as well.
 
-- Q: Do I need Vector and FakeGApps?
-- A: Only if your ROM doesn't support signature spoofing, which is the case for every stock Android. Check the top of microG Self-Check, if spoofing is ticked, you don't need them.
+### General
 
-- Q: How do I update microG?
-- A: Module updates come through Magisk app with new microG versions. If you want newer microG sooner, install microG updates from microG F-Droid repo on top of the module, or [build the module](#build) yourself, `scripts/pull-microg.sh` downloads the latest microG.
+#### What is the difference between this and other microG installers?
+This module aims for stock Android support with Google apps preinstalled and doesn't require debloating Google apps first. Should work on AOSP-based ROMs as well.
 
-- Q: Can I use the real Play Store instead of microG Companion?
-- A: Yes, install `noogle-microg-playful`, it keeps Play Store of your ROM. If your ROM has no Play Store, build the [playful variant](#playful-variant) with Play Store APK. Aurora Store works with both variants too.
+#### Which Android versions are supported?
+Android 11 to 17, tested on emulators. On Android 17 signature spoofing with Vector doesn't work yet, so microG works there only on ROMs supporting spoofing on their own.
 
-- Q: Logging in to Google account fails with "There was a problem communicating with Google servers"
-- A: Update microG to the latest version (see above). If you use a firewall, allow network access for microG Services, it's a separate app from Google's one.
+#### Does it work on OnePlus, OPPO or realme?
+Only if Google apps are on regular partitions. Some of their ROMs (e.g. OxygenOS 12) keep them on `my_*` partitions like `/my_heytap`, which Magisk modules can't modify. The installer stops with a message in that case.
 
-- Q: What happens when I uninstall the module?
-- A: The system partition is not modified, so after reboot preinstalled Google apps are back. Their updates are removed during module installation, so Play Store will download them again.
+#### Where is Noogle Debloat?
+It's not released yet. Modules like "microG Installer Revived" are separate projects, not part of Noogle.
 
-- Q: Location doesn't work after uninstalling the module
-- A: Google Play Services may be left without location permissions. Grant them with:
-  ```sh
-  adb shell pm grant com.google.android.gms android.permission.ACCESS_COARSE_LOCATION
-  adb shell pm grant com.google.android.gms android.permission.ACCESS_FINE_LOCATION
-  ```
+### Setup
+
+#### Do I need Vector and FakeGApps?
+Only if your ROM doesn't support signature spoofing, which is the case for every stock Android. Check the top of microG Self-Check, if spoofing is ticked, you don't need them.
+
+#### Can I use the real Play Store instead of microG Companion?
+Yes, install `noogle-microg-playful`, it keeps Play Store of your ROM. If your ROM has no Play Store, build the [playful variant](#playful-variant) with Play Store APK. Aurora Store works with both variants too.
+
+#### How do I update microG?
+Module updates with new microG versions come through Magisk app. You can also install microG updates from microG F-Droid repo on top of the module, or [build the module](#build) yourself, `scripts/pull-microg.sh` downloads the latest microG.
+
+### Problems
+
+#### Logging in to Google account fails with "There was a problem communicating with Google servers"
+Update microG to the latest version (see above). If you use a firewall, allow network access for microG Services, it's a separate app from Google's one.
+
+#### What happens when I uninstall the module?
+The system partition is not modified, so after reboot preinstalled Google apps are back. Their updates are removed during module installation, so Play Store will download them again.
+
+#### Location doesn't work after uninstalling the module
+Google Play Services may be left without location permissions. Grant them with:
+```sh
+adb shell pm grant com.google.android.gms android.permission.ACCESS_COARSE_LOCATION
+adb shell pm grant com.google.android.gms android.permission.ACCESS_FINE_LOCATION
+```
