@@ -13,7 +13,10 @@
 # - Only one adb version may exist, emulator runs SDK platform-tools adb on its own. Mismatch restarts adb server,
 #   devices go offline mid-transfer and rootAVD silently ends up without patched ramdisk.
 # - rootAVD patches the system image shared by all AVDs of that Android version, not the AVD itself.
-# - Magisk su prompt is hidden from uiautomator, it can't be tapped. Other Magisk UI can (see tap_node).
+# - Magisk su prompt is hidden from uiautomator, it can't be tapped, but Back key denies it (saved like timeout).
+#   Other Magisk UI can be tapped (see tap_node). Magisk caches su policies, DB edits don't apply immediately.
+# - Magisk additional setup puts su in place right after OK, but reboots a few seconds later.
+# - Debug output of UI automation: DEBUG=1 ./scripts/setup-avd.sh
 # - UI can be inspected with: adb exec-out uiautomator dump /dev/tty, adb exec-out screencap -p > screen.png
 # - In Magisk DB policies, shell is uid 2000: adb shell "su -c \"magisk --sqlite 'SELECT * FROM policies'\""
 
