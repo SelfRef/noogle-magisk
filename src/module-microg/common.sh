@@ -86,7 +86,7 @@ install_updates_for_pif() {
 }
 
 grant_microg_permissions() {
-	permissions="ACCESS_COARSE_LOCATION ACCESS_FINE_LOCATION ACCESS_BACKGROUND_LOCATION READ_EXTERNAL_STORAGE WRITE_EXTERNAL_STORAGE GET_ACCOUNTS POST_NOTIFICATIONS READ_PHONE_STATE RECEIVE_SMS SYSTEM_ALERT_WINDOW"
+	permissions="ACCESS_COARSE_LOCATION ACCESS_FINE_LOCATION ACCESS_BACKGROUND_LOCATION READ_EXTERNAL_STORAGE WRITE_EXTERNAL_STORAGE GET_ACCOUNTS POST_NOTIFICATIONS READ_PHONE_STATE RECEIVE_SMS"
 	gms_dump="$(dumpsys package com.google.android.gms)"
 	allowlist_restricted_permissions
 
@@ -116,6 +116,20 @@ grant_microg_permissions() {
 			fi
 		fi
 	done
+
+	# Display over other apps is an app op, not a runtime permission, pm grant and dumpsys don't cover it
+	if appops get com.google.android.gms SYSTEM_ALERT_WINDOW | grep -q 'SYSTEM_ALERT_WINDOW: allow'; then
+		printf "%-35s %s\n" "[I] SYSTEM_ALERT_WINDOW" "GRANTED"
+	else
+		printf "%-31s %s\n" "[W] SYSTEM_ALERT_WINDOW" "NOT GRANTED"
+		echo -n "|-[P] Granting...                   "
+		if appops set com.google.android.gms SYSTEM_ALERT_WINDOW allow; then
+			echo "SUCCESS"
+		else
+			echo " FAILED"
+			warn="true"
+		fi
+	fi
 
 	echo "-------------------------------------------"
 	echo "[P] Checking microG Services permissions done."
