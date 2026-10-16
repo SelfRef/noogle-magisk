@@ -93,6 +93,7 @@ Stock Android and most other ROMs don't support it, so it has to be added with a
 8. Optionally install Play Integrity Fix through Magisk, original is discontinued, use one of the maintained forks:
     - [PlayIntegrityFork](https://github.com/osm0sis/PlayIntegrityFork) by osm0sis
     - [PIF Inject](https://github.com/KOWX712/PlayIntegrityFix) by KOWX712
+    - It hides module files from microG, so the module installs microG Services and Companion as user updates on next boot
 
 Other ways you may find:
 - ROM patchers (Haystack, NanoDroid-patcher, Tingle) work properly only below Android 9
@@ -102,7 +103,7 @@ Other ways you may find:
 Enable Google device registration in microG settings and restart Play Store.
 
 ### microG crashing
-If microG crashes when used with other modules interacting with it, like Play Integrity Fix, install both microG Services and microG Companion (same APKs as in this module, from [official site](https://microg.org/download.html)) on top, as user updates. This should not be needed with recent versions, but may help on some devices.
+If microG crashes when used with other modules interacting with it, install both microG Services and microG Companion (same APKs as in this module, from [official site](https://microg.org/download.html)) on top, as user updates. With Play Integrity Fix the module does it on its own on boot.
 
 If you built the module yourself, you can install them from `apk/` through ADB:
 ```sh

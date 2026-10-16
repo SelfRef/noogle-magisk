@@ -64,6 +64,27 @@ allowlist_restricted_permissions() {
 	gms_dump="$(dumpsys package com.google.android.gms)"
 }
 
+# Play Integrity Fix unmounts module files in GMS and Play Store processes, so they can't open their APKs and crash.
+# Installing module's APKs as updates moves them to /data/app, which isn't unmounted.
+install_updates_for_pif() {
+	pif=/data/adb/modules/playintegrityfix
+	[ -d "$pif" ] && [ ! -f "$pif/disable" ] && [ ! -f "$pif/remove" ] || return 0
+	# Companion first, it installs in seconds while Services take much longer
+	for package in com.android.vending com.google.android.gms; do
+		apk=$(pm path "$package" | head -n 1 | cut -d: -f2)
+		# Only APKs mounted by module, existing updates and device's own Play Store aren't affected
+		[ -f "$MODDIR/system/${apk#/system/}" ] || continue
+		echo -n "[P] Installing $package as update for Play Integrity Fix... "
+		tmp_apk=/data/local/tmp/noogle-microg.apk
+		if cp "$apk" "$tmp_apk" && pm install -r "$tmp_apk" > /dev/null; then
+			echo "DONE"
+		else
+			echo "FAILED"
+		fi
+		rm -f "$tmp_apk"
+	done
+}
+
 grant_microg_permissions() {
 	permissions="ACCESS_COARSE_LOCATION ACCESS_FINE_LOCATION ACCESS_BACKGROUND_LOCATION READ_EXTERNAL_STORAGE WRITE_EXTERNAL_STORAGE GET_ACCOUNTS POST_NOTIFICATIONS READ_PHONE_STATE RECEIVE_SMS SYSTEM_ALERT_WINDOW"
 	gms_dump="$(dumpsys package com.google.android.gms)"
