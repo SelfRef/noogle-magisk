@@ -1,4 +1,7 @@
 # Unreleased
+
+# v2026.10.16
+- microG Services 0.3.17.252432, Companion 0.3.17.40226, Services Framework Proxy v0.1.0
 - microG gets "Display over other apps" permission on first boot too, it was skipped before
 - microG Services and Companion are installed as user updates when Play Integrity Fix is installed, it hides module files from them and they crashed
 
