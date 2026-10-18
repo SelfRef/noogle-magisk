@@ -17,6 +17,16 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # Signing blocks of Google's APKs for Catfish build, base64 of signatures/ files (see scripts/pull-signatures.sh)
+      - name: Restore signatures
+        env:
+          GMS_SIGNATURE: ${{ secrets.CATFISH_SIGNATURE_GMS }}
+          VENDING_SIGNATURE: ${{ secrets.CATFISH_SIGNATURE_VENDING }}
+        run: |
+          mkdir -p signatures
+          base64 -d <<< "$GMS_SIGNATURE" > signatures/com.google.android.gms
+          base64 -d <<< "$VENDING_SIGNATURE" > signatures/com.android.vending
+
       - name: Prepare release
         run: scripts/release.sh
 

@@ -2,6 +2,8 @@
 packages="com.google.android.gms com.android.vending com.google.android.gsf"
 # Packages whose Google updates are kept, playful build bundling real Play Store sets it
 keep_updates=""
+# Catfish build sets it, its APKs carry Google's signatures and can't be installed as user apps
+catfish=false
 
 # Checks if active version of package is microG (it requests signature spoofing permission)
 # $1: package
@@ -69,6 +71,10 @@ allowlist_restricted_permissions() {
 install_updates_for_pif() {
 	pif=/data/adb/modules/playintegrityfix
 	[ -d "$pif" ] && [ ! -f "$pif/disable" ] && [ ! -f "$pif/remove" ] || return 0
+	if [ "$catfish" = true ]; then
+		echo "[W] Play Integrity Fix unmounts module files in microG, Catfish can't work around it, microG may crash"
+		return 0
+	fi
 	# Companion first, it installs in seconds while Services take much longer
 	for package in com.android.vending com.google.android.gms; do
 		apk=$(pm path "$package" | head -n 1 | cut -d: -f2)

@@ -19,16 +19,17 @@ show_help() {
 	echo "  -s <suffix>   Passed to build: suffix added to app directories and APK names"
 	echo "  -p            Passed to build: playful variant keeping device's Play Store"
 	echo "  -P <apk>      Passed to build: playful variant with given Play Store APK"
+	echo "  -c            Passed to build: catfish variant with Google's signatures"
 	exit "${1:-0}"
 }
 
-while getopts "hyud:s:pP:" opt; do
+while getopts "hyud:s:pP:c" opt; do
 	case $opt in
 		h) show_help ;;
 		y) skip_confirmations=true ;;
 		u) build_script=build-noogle-unbundle.sh ;;
 		d|s|P) build_args+=("-$opt" "$OPTARG") ;;
-		p) build_args+=(-p) ;;
+		p|c) build_args+=("-$opt") ;;
 		*) show_help 1 ;;
 	esac
 done

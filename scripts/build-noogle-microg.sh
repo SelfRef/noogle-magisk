@@ -6,6 +6,7 @@ set -e
 apk_dir=apk
 src_dir=src
 dist_dir=dist
+signatures_dir=signatures
 module_dir=module-microg
 destination_dir=system/product
 suffix=MG
@@ -28,10 +29,11 @@ show_help() {
 	echo "  -s <suffix>   Suffix added to app directories and APK names (default: MG)"
 	echo "  -p            Playful variant: keep device's Play Store instead of installing microG Companion"
 	echo "  -P <apk>      Playful variant with given Play Store APK, for ROMs without Play Store (e.g. LineageOS)"
+	echo "  -c            Catfish variant: microG APKs carry Google's signatures, no signature spoofing needed"
 	exit "${1:-0}"
 }
 
-while getopts "hd:s:pP:" opt; do
+while getopts "hd:s:pP:c" opt; do
 	case $opt in
 		h) show_help ;;
 		d)
@@ -52,9 +54,14 @@ while getopts "hd:s:pP:" opt; do
 			playstore_apk="$OPTARG"
 			[ -f "$playstore_apk" ] || { echo "[C] Play Store APK not found: $playstore_apk"; exit 1; }
 			;;
+		c) catfish=true ;;
 		*) show_help 1 ;;
 	esac
 done
+if [ -n "$catfish" ]; then
+	[ -z "$variant" ] || { echo "[C] Catfish can't be combined with Playful yet"; exit 1; }
+	variant=catfish
+fi
 
 # Date based version, Magisk offers update when versionCode grows. Release script sets them for same day releases.
 module_version="${MODULE_VERSION:-v$(date -u +%Y.%m.%d)}"
@@ -106,6 +113,41 @@ else
 	echo "[W] apksigner (Android SDK build-tools) or keytool (JDK) not found, ${gsf_apk##*/} keeps v1 signature only"
 fi
 
+# Catfish: Services and Companion get signing blocks copied from Google's APKs (see pull-signatures.sh). Android doesn't
+# check system app contents against them, so they pass as Google's apps, but can't be installed as user apps.
+if [ "$variant" = catfish ]; then
+	zipalign="$(command -v zipalign || ls "${ANDROID_HOME:-$HOME/Android/Sdk}"/build-tools/*/zipalign 2> /dev/null | sort -V | tail -1)"
+	[ -n "$zipalign" ] || { echo "[C] zipalign (Android SDK build-tools) not found, required for Catfish"; exit 1; }
+	for pkg in com.google.android.gms com.android.vending; do
+		app="${apps[$pkg]}$suffix"
+		apk="$module_dir/$destination_dir/priv-app/$app/$app.apk"
+		block="$signatures_dir/$pkg"
+		[ -s "$block" ] || { echo "[C] $block missing or empty, run scripts/pull-signatures.sh"; exit 1; }
+		# Drop microG's own v1 files, zipalign rewrites the zip without its signing block
+		zip -q -d "$apk" 'META-INF/*.SF' 'META-INF/*.RSA' 'META-INF/*.DSA' 'META-INF/*.EC' 'META-INF/MANIFEST.MF' \
+			2> /dev/null || [ $? -eq 12 ]
+		"$zipalign" -P 16 -f 4 "$apk" "$apk.aligned"
+		size=$(stat -c %s "$apk.aligned")
+		# End of central directory is last 22 bytes (no zip comment), central directory offset is at its byte 16
+		if [ "$(od -An -tx4 --endian=little -j $((size - 22)) -N 4 "$apk.aligned" | tr -d ' ')" != 06054b50 ]; then
+			echo "[C] ${apk##*/}: unexpected zip layout, can't add signing block"
+			exit 1
+		fi
+		cd_offset=$(od -An -tu4 --endian=little -j $((size - 6)) -N 4 "$apk.aligned" | tr -d ' ')
+		new_offset=$((cd_offset + $(stat -c %s "$block")))
+		# Signing block goes right before central directory, which moves by its size
+		{
+			head -c "$cd_offset" "$apk.aligned"
+			cat "$block"
+			tail -c +$((cd_offset + 1)) "$apk.aligned" | head -c $((size - cd_offset - 6))
+			printf "$(printf '\\x%02x' $((new_offset & 255)) $((new_offset >> 8 & 255)) \
+				$((new_offset >> 16 & 255)) $((new_offset >> 24 & 255)))\0\0"
+		} > "$apk"
+		rm "$apk.aligned"
+		echo "[I] Added Google's signing block to ${apk##*/}"
+	done
+fi
+
 cp -r "$src_dir/$module_dir"/* "$module_dir/"
 mv "$module_dir/etc" "$module_dir/$destination_dir/"
 printf '\nversion=%s\nversionCode=%s\n' "$module_version" "$module_version_code" >> "$module_dir/module.prop"
@@ -123,6 +165,10 @@ if [ "$variant" = playful ]; then
 		sed -i 's/^packages=.*/packages="com.google.android.gms com.google.android.gsf"/' "$module_dir/common.sh"
 		sed -i 's/update-microg.json/update-microg-playful.json/' "$module_dir/module.prop"
 	fi
+elif [ "$variant" = catfish ]; then
+	sed -i 's/^name=.*/& Catfish/; s/^description=.*/&, no signature spoofing needed/' "$module_dir/module.prop"
+	sed -i 's/update-microg.json/update-microg-catfish.json/' "$module_dir/module.prop"
+	sed -i 's/^catfish=.*/catfish=true/' "$module_dir/common.sh"
 fi
 
 gms_dir="$destination_dir/priv-app/GmsCore$suffix"

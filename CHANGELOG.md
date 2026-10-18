@@ -1,4 +1,5 @@
 # Unreleased
+- New Noogle microG Catfish variant, microG carries Google's signatures, so it works without signature spoofing (no Vector/FakeGApps), but can't be updated as user app (idea from [microG_no_sigspoof](https://github.com/IsHacker003/microg_no_sigspoof) by IsHacker)
 - microG permissions are granted reliably on first boot, some were skipped as not available when checked too early
 
 # v2026.10.16
