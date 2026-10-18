@@ -6,11 +6,38 @@ Magisk modules for removing/replacing Google applications on stock Android 11-17
 
 Name | Description
 --- | ---
-Noogle microG | Installs microG Services in place of Google Services (if present) and microG Companion in place of Play Store
-Noogle microG Playful | Same, but keeps Play Store
-Noogle microG Catfish | Same as Noogle microG, but microG carries Google's signatures, so it needs no signature spoofing
-Noogle microG Playful Catfish | Both: keeps Play Store and needs no signature spoofing
-Noogle Unbundle | Removes other Google apps from system, like Chrome, Gmail, Maps or YouTube (they stay installable from store)
+Noogle microG | Installs microG Services in place of Google Services (if present), comes in [4 variants](#which-noogle-microg-to-choose)
+Noogle Unbundle | Removes other Google apps from system, comes in [2 variants](#which-noogle-unbundle-to-choose)
+
+### Which Noogle microG to choose
+
+Variant | Play Store | Signature spoofing | microG updates from F-Droid | Play Integrity Fix
+:--- | --- | --- | --- | ---
+`noogle-microg` | Replaced by microG Companion | Needed | Yes | Yes
+`noogle-microg-playful` | Kept <sup>[*](#playful-variant)</sup> | Needed | Yes | Yes
+`noogle-microg-catfish` | Replaced by microG Companion | Not needed | No | microG may crash
+`noogle-microg-playful-catfish` | Kept <sup>[*](#playful-variant)</sup> | Not needed | No | microG may crash
+
+**Playful or not:** Playful keeps Play Store of your ROM. The others replace it with microG Companion, which only provides Play Store services to apps, use [Aurora Store](https://auroraoss.com) to get apps. You can switch variants anytime by installing the other one over it.
+
+**Catfish or not:** Regular variants need your ROM to report Google's signature for microG ([signature spoofing](#signatures-are-not-correct)), which stock Android can't do without Vector and FakeGApps. Catfish microG carries signing blocks copied from Google's APKs instead. Android doesn't check contents of system apps against their signatures, so it reports Google's signature without any spoofing. Idea from [microG_no_sigspoof](https://github.com/IsHacker003/microg_no_sigspoof) by IsHacker. The downsides:
+- Signatures don't match the contents, so Catfish APKs can't be installed as user apps: microG updates come only with the module, and Play Integrity Fix workaround (microG installed as user updates) isn't possible
+- Google's updates of Play Services pass as valid updates, the module removes them on every boot
+- Tested on Android 15 emulator so far
+
+If your ROM already supports signature spoofing (see [ROMs](#signatures-are-not-correct)), use a regular variant.
+
+### Which Noogle Unbundle to choose
+
+Variant | Removes | Kept | List
+:--- | --- | --- | ---
+`noogle-unbundle` | Google apps installable from store: Chrome, Gmail, Maps, YouTube, Photos, Drive, Google app... | Phone basics, accessibility, Google system components | [packages.txt](src/module-unbundle/packages.txt)
+`noogle-unbundle-hard` | Same, plus phone basics (Pixel Launcher, Phone, Messages, Gboard, Camera, Clock, Contacts...), accessibility (TalkBack, Speech Services), Google system components (Android System Intelligence, Digital Wellbeing, Android Auto...) and Pixel extras | Setup Wizard, Device Health Services, Network Stack, file and sound pickers, carrier services and others that break the phone when removed ([tested](src/module-unbundle/packages-hard.txt)) | [packages.txt](src/module-unbundle/packages.txt) + [packages-hard.txt](src/module-unbundle/packages-hard.txt)
+
+Both work on their own and together with any Noogle microG variant, they never remove apps microG replaces. You can switch variants anytime by installing the other one over it, apps removed only by Hard come back.
+
+> [!CAUTION]
+> Hard removes apps your phone may have no other one for. Install and set up replacements before installing it: launcher, phone, SMS app, camera, clock with alarms, and a keyboard enabled in settings (without one you can't type your password). The installer keeps apps with no replacement installed (it shows them as KEPT), install the module again after adding replacements. Contacts, Gallery or Calculator are removed without checks, install your own if you need them. On some phones alarms of any app may go silent without Google Clock, check yours rings after installing.
 
 ## Install
 
@@ -25,18 +52,15 @@ It requires Magisk v29.0 or newer. If you don't have it yet, consult the [offici
 > [!NOTE]
 > KernelSU and APatch are supported too, but tested less than Magisk. Recent versions (KernelSU v3.0+, APatch 11219+) need a metamodule installed first (e.g. meta-overlayfs or NoMount, which one works best depends on the device), otherwise the module files are not mounted. On KernelSU disable "Umount modules" in App Profile of microG Services, microG Companion and Services Framework Proxy.
 
-1. Download latest version from [releases](https://github.com/SelfRef/noogle-magisk/releases)
-    - `noogle-microg` replaces Play Store with microG Companion, use [Aurora Store](https://auroraoss.com) for apps
-    - `noogle-microg-playful` keeps Play Store of your ROM, for ROMs without it see [playful build](#playful-variant)
-    - `noogle-microg-catfish` works without signature spoofing (no Vector/FakeGApps), see [catfish variant](#catfish-variant) for its limits
-    - `noogle-microg-playful-catfish` keeps Play Store and works without signature spoofing
-    - `noogle-unbundle` is optional and works on its own, install it as a separate module
+1. Download [variant of your choice](#which-noogle-microg-to-choose) from [releases](https://github.com/SelfRef/noogle-magisk/releases)
+    - For playful variant on ROMs without Play Store see [playful build](#playful-variant)
+    - [Noogle Unbundle](#which-noogle-unbundle-to-choose) is optional and works on its own, install it as a separate module
 2. Install through Magisk app
 3. Reboot, microG permissions are granted automatically on first boot
 4. Ensure all permission boxes are checked in microG Self-Check
     - If not, click "Action" button next to module in Magisk to grant them again, or tap them in Self-Check
 5. Check signature spoofing status at the top of Self-Check
-    - If your ROM doesn't support signature spoofing, you must add it: [check troubleshooting](#signatures-are-not-correct), or use Catfish
+    - Regular variants on ROMs without signature spoofing: [add it](#signatures-are-not-correct)
 6. Playful only: enable Google device registration in microG settings, Play Store doesn't work without it
 
 ## Build
@@ -45,32 +69,28 @@ Requires Linux, Mac or WSL on Windows with `bash`, `zip`, `curl` and `jq`. Optio
 
 1. Run `scripts/pull-microg.sh` to download latest microG APKs to `apk/` and verify their checksums
     - Or [download them manually](https://microg.org/download.html) and place in `apk/` directory
-2. Run `scripts/build-noogle-microg.sh` (or `scripts/build-noogle-unbundle.sh` for Noogle Unbundle, it needs no APKs)
+2. Run `scripts/build-noogle-microg.sh` (or `scripts/build-noogle-unbundle.sh` for Noogle Unbundle, it needs no APKs, `-H` builds Hard)
     - Module will be created in `dist/`
     - Check `-h` flag for build options, like destination partition
 
 ### Playful variant
 
+Released playful modules don't contain Play Store, they keep the one your ROM has. Bundling it would mean redistributing Google's APK, and it comes in different versions and architectures. If your ROM has no Play Store (e.g. LineageOS), build playful variant with Play Store APK yourself (`-P` below).
+
 - `scripts/build-noogle-microg.sh -p` builds playful variant, which keeps Play Store of your ROM
 - `scripts/build-noogle-microg.sh -P <apk>` builds playful variant with given Play Store APK, for ROMs without Play Store (e.g. LineageOS)
     - Play Store APK must support your Android version (newer ones need Android 12+)
-    - This build is not updated by Magisk, as released playful builds don't contain Play Store
+    - This build is not updated by Magisk, updating to released playful build would remove Play Store
 
 ### Catfish variant
 
-`scripts/build-noogle-microg.sh -c` builds catfish variant, it needs `zipalign` and `apksigner` (Android SDK build-tools). It replaces signatures of microG Services and Companion with signing blocks copied from Google's APKs. Android doesn't check contents of system apps against their signatures, so it reports Google's signature for them and no signature spoofing is needed. Idea from [microG_no_sigspoof](https://github.com/IsHacker003/microg_no_sigspoof) by IsHacker.
+Catfish build needs `zipalign` and `apksigner` (Android SDK build-tools) and signing blocks of Google's APKs, which aren't in the repo:
 
 1. Get the signing blocks into `signatures/` with `scripts/pull-signatures.sh`, once:
     - From a device with stock Google apps through ADB (Noogle microG disabled)
     - Or from APK files: `scripts/pull-signatures.sh <Play Services APK> <Play Store APK>`
     - It checks the APKs are signed by Google, microG ones are rejected
 2. Run `scripts/build-noogle-microg.sh -c`, add `-p` or `-P <apk>` for playful catfish (only microG Services gets Google's signature, Play Store has its own)
-
-- Signatures don't match the contents, so these APKs can't be installed as user apps
-    - microG updates from F-Droid repo can't be installed on top, updates come with the module
-    - Play Integrity Fix workaround (microG installed as user updates) isn't possible, microG may crash with it
-- Google's updates of Play Services pass as valid updates now, the module removes them on every boot
-- Tested on Android 15 emulator so far
 
 ### Install from PC
 
@@ -80,20 +100,20 @@ Instead of copying the module to your phone, you can build and install it throug
 2. Grant root to Shell in Magisk (it will ask on first `adb shell su`)
 3. Run `scripts/install-noogle.sh`
     - It builds the module, installs it and reboots the phone, asking before each step (`-y` to skip)
-    - It accepts the same build options as the build script, `-u` installs Noogle Unbundle instead
+    - It accepts the same build options as the build script, `-u` installs Noogle Unbundle instead, `-H` Noogle Unbundle Hard
 
 ## Compatibility
 
 Module/Type | Notes
 :--- | ---
-Vector + FakeGApps | Recommended way to [enable signature spoofing](#signatures-are-not-correct)
-Play Integrity Fix | [Maintained forks](#signatures-are-not-correct) only
-User updates | Installing microG updates from F-Droid repo
+Vector + FakeGApps | Recommended way to [enable signature spoofing](#signatures-are-not-correct), not needed with Catfish
+Play Integrity Fix | [Maintained forks](#signatures-are-not-correct) only, not with Catfish
+User updates | Installing microG updates from F-Droid repo, not with Catfish
 
 ## Troubleshooting
 
 ### Signatures are not correct
-microG apps pretend to be Google apps, so Android must report Google's signature for them. This is called [signature spoofing](https://github.com/microg/GmsCore/wiki/Signature-Spoofing) and microG Self-Check shows at the top whether it works.
+microG apps pretend to be Google apps, so Android must report Google's signature for them. This is called [signature spoofing](https://github.com/microg/GmsCore/wiki/Signature-Spoofing) and microG Self-Check shows at the top whether it works. [Catfish variants](#which-noogle-microg-to-choose) don't need it.
 
 Some custom ROMs support it out of the box (e.g. LineageOS since 2024-02-26, crDroid, CalyxOS, /e/), in that case nothing else is needed. Note that Google changed signature checks in 2024-11, so older ROM builds may need an update.
 
@@ -117,7 +137,6 @@ Stock Android and most other ROMs don't support it, so it has to be added with a
 
 Other ways you may find:
 - ROM patchers (Haystack, NanoDroid-patcher, Tingle) work properly only below Android 9
-- microG APKs with signature blocks copied from Google APKs don't need spoofing, but can't be updated as user apps, that's the [catfish variant](#catfish-variant)
 
 ### Play Store shows "Server error" or DF-DFERH-01
 Enable Google device registration in microG settings and restart Play Store.
@@ -152,7 +171,7 @@ Android 11 to 17, tested on emulators. On Android 17 signature spoofing with Vec
 Only if Google apps are on regular partitions. Some of their ROMs (e.g. OxygenOS 12) keep them on `my_*` partitions like `/my_heytap`, which Magisk modules can't modify. The installer stops with a message in that case.
 
 #### Which apps does Noogle Unbundle remove?
-Google apps you can install from store again, like Chrome, Gmail, Maps, YouTube, Photos, Drive or the Google app, full list is in [packages.txt](src/module-unbundle/packages.txt). Phone basics (Dialer, Contacts, Messages, Gboard, Pixel Launcher, Clock, Camera) and system components stay, removing them leaves the phone without a replacement.
+See [which to choose](#which-noogle-unbundle-to-choose), lists have a comment for each app and say what's kept on purpose. Apps not on your device are skipped.
 
 #### What happens to my data in unbundled apps?
 Apps you updated stay installed as regular apps with their data, so you can uninstall them like any other app. Apps never updated are removed with their data. After uninstalling Noogle Unbundle they are back as system apps.
@@ -160,13 +179,13 @@ Apps you updated stay installed as regular apps with their data, so you can unin
 ### Setup
 
 #### Do I need Vector and FakeGApps?
-Only if your ROM doesn't support signature spoofing, which is the case for every stock Android. Check the top of microG Self-Check, if spoofing is ticked, you don't need them. `noogle-microg-catfish` doesn't need them either, see [catfish variant](#catfish-variant).
+Only with regular variants on ROMs without signature spoofing, which is the case for every stock Android. Check the top of microG Self-Check, if spoofing is ticked, you don't need them. Catfish variants don't need them at all.
 
 #### Can I use the real Play Store instead of microG Companion?
-Yes, install `noogle-microg-playful`, it keeps Play Store of your ROM. You can switch between variants anytime by installing the other one over it. If your ROM has no Play Store, build the [playful variant](#playful-variant) with Play Store APK. Aurora Store works with both variants too.
+Yes, install a playful variant, see [which to choose](#which-noogle-microg-to-choose). If your ROM has no Play Store, build the [playful variant](#playful-variant) with Play Store APK. Aurora Store works with all variants too.
 
 #### How do I update microG?
-Module updates with new microG versions come through Magisk app. Except for Catfish, you can also install microG updates from microG F-Droid repo on top of the module, or [build the module](#build) yourself, `scripts/pull-microg.sh` downloads the latest microG.
+Module updates with new microG versions come through Magisk app. With regular variants you can also install microG updates from microG F-Droid repo on top of the module. Or [build the module](#build) yourself, `scripts/pull-microg.sh` downloads the latest microG.
 
 ### Problems
 
