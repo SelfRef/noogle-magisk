@@ -26,6 +26,11 @@ $pif_log"
 
 # Grant microG permissions once after install, Action button repeats it when needed
 if [ ! -f "$MODDIR/permissions-granted" ]; then
+	# Right after first boot some runtime permissions are missing in dump for a few seconds and would show as N/A
+	for i in $(seq 30); do
+		dumpsys package com.google.android.gms | grep 'ACCESS_FINE_LOCATION: granted=' > /dev/null && break
+		sleep 2
+	done
 	if grant_log="$(grant_microg_permissions 2>&1)"; then
 		touch "$MODDIR/permissions-granted"
 	fi
