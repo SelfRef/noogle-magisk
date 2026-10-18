@@ -33,24 +33,27 @@ Variant | Removes | Kept | List
 :--- | --- | --- | ---
 `noogle-unbundle` | Google apps installable from store: Chrome, Gmail, Maps, YouTube, Photos, Drive, Google app... | Phone basics, accessibility, Google system components | [packages.txt](src/module-unbundle/packages.txt)
 `noogle-unbundle-hard` | Same, plus phone basics (Pixel Launcher, Phone, Messages, Gboard, Camera, Clock, Contacts...), accessibility (TalkBack, Speech Services), Google system components (Android System Intelligence, Digital Wellbeing, Android Auto...) and Pixel extras | Setup Wizard, Device Health Services, Network Stack, file and sound pickers, carrier services and others that break the phone when removed ([tested](src/module-unbundle/packages-hard.txt)) | [packages.txt](src/module-unbundle/packages.txt) + [packages-hard.txt](src/module-unbundle/packages-hard.txt)
+`noogle-unbundle-fossify` | Same as Hard, and installs [Fossify](https://fossify.org) apps as replacements | Same as Hard | Same as Hard
 
-Both work on their own and together with any Noogle microG variant, they never remove apps microG replaces. You can switch variants anytime by installing the other one over it, apps removed only by Hard come back.
+All work on their own and together with any Noogle microG variant, they never remove apps microG replaces. You can switch variants anytime by installing the other one over it, apps removed only by Hard come back.
 
-> [!CAUTION]
-> Hard removes apps your phone may have no other one for. Install and set up replacements before installing it: launcher, phone, SMS app, camera, clock with alarms, and a keyboard enabled in settings (without one you can't type your password). The installer keeps apps with no replacement installed (it shows them as KEPT), install the module again after adding replacements. Contacts, Gallery or Calculator are removed without checks, install your own if you need them. On some phones alarms of any app may go silent without Google Clock, check yours rings after installing.
+**Fossify:** installs Launcher, Phone, Messages, Keyboard, Contacts, Gallery, Calculator, Clock, Camera, File Manager, Calendar, Notes and Voice Recorder as system apps. They are the versions from F-Droid (Fossify's own reproducible builds), so F-Droid updates them, updates stay installed even after removing the module. On every boot the module switches to Fossify Keyboard when the keyboard in use is gone (also on lock screen, so you can type your password), and gives empty home, phone and SMS roles to Fossify apps. Other Fossify apps (Music Player, Paint, Documents...) are in F-Droid.
+
+> [!WARNING]
+> Hard removes apps your phone may have no other one for. Install and set up replacements before installing it: launcher, phone, SMS app, camera, clock with alarms, and a keyboard enabled in settings (without one you can't type your password). The installer keeps apps with no replacement installed (it shows them as KEPT), install the module again after adding replacements. Contacts, Gallery or Calculator are removed without checks, install your own if you need them. On some phones alarms of any app may go silent without Google Clock, check yours rings after installing. Fossify variant brings its own replacements, but the alarm warning applies too.
 
 ## Install
 
 It requires Magisk v29.0 or newer. If you don't have it yet, consult the [official installation instructions](https://topjohnwu.github.io/Magisk/install.html).
-
-> [!WARNING]
-> Modules are mainly tested on Android emulators (Google Play images). Real devices and vendor ROMs may behave differently, please [report](#reporting-issues) any issues you hit.
 
 > [!TIP]
 > It's a good idea to enable ADB debugging as well before installing in case of any issues.
 
 > [!NOTE]
 > KernelSU and APatch are supported too, but tested less than Magisk. Recent versions (KernelSU v3.0+, APatch 11219+) need a metamodule installed first (e.g. meta-overlayfs or NoMount, which one works best depends on the device), otherwise the module files are not mounted. On KernelSU disable "Umount modules" in App Profile of microG Services, microG Companion and Services Framework Proxy.
+
+> [!NOTE]
+> Modules are mainly tested on Android emulators (Google Play images). Real devices and vendor ROMs may behave differently, please [report](#reporting-issues) any issues you hit.
 
 1. Download [variant of your choice](#which-noogle-microg-to-choose) from [releases](https://github.com/SelfRef/noogle-magisk/releases)
     - For playful variant on ROMs without Play Store see [playful build](#playful-variant)
@@ -69,7 +72,7 @@ Requires Linux, Mac or WSL on Windows with `bash`, `zip`, `curl` and `jq`. Optio
 
 1. Run `scripts/pull-microg.sh` to download latest microG APKs to `apk/` and verify their checksums
     - Or [download them manually](https://microg.org/download.html) and place in `apk/` directory
-2. Run `scripts/build-noogle-microg.sh` (or `scripts/build-noogle-unbundle.sh` for Noogle Unbundle, it needs no APKs, `-H` builds Hard)
+2. Run `scripts/build-noogle-microg.sh` (or `scripts/build-noogle-unbundle.sh` for Noogle Unbundle, it needs no APKs, `-H` builds Hard, `-F` Fossify after `scripts/pull-fossify.sh` downloads Fossify apps)
     - Module will be created in `dist/`
     - Check `-h` flag for build options, like destination partition
 
@@ -100,7 +103,7 @@ Instead of copying the module to your phone, you can build and install it throug
 2. Grant root to Shell in Magisk (it will ask on first `adb shell su`)
 3. Run `scripts/install-noogle.sh`
     - It builds the module, installs it and reboots the phone, asking before each step (`-y` to skip)
-    - It accepts the same build options as the build script, `-u` installs Noogle Unbundle instead, `-H` Noogle Unbundle Hard
+    - It accepts the same build options as the build script, `-u` installs Noogle Unbundle instead, `-H` Noogle Unbundle Hard, `-F` Noogle Unbundle Fossify
 
 ## Compatibility
 
