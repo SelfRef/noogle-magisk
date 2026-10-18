@@ -8,6 +8,7 @@ Name | Description
 --- | ---
 Noogle microG | Installs microG Services in place of Google Services (if present) and microG Companion in place of Play Store
 Noogle microG Playful | Same, but keeps Play Store
+Noogle microG Catfish | Same as Noogle microG, but microG carries Google's signatures, so it needs no signature spoofing
 Noogle Unbundle | Removes other Google apps from system, like Chrome, Gmail, Maps or YouTube (they stay installable from store)
 
 ## Install
@@ -26,13 +27,14 @@ It requires Magisk v29.0 or newer. If you don't have it yet, consult the [offici
 1. Download latest version from [releases](https://github.com/SelfRef/noogle-magisk/releases)
     - `noogle-microg` replaces Play Store with microG Companion, use [Aurora Store](https://auroraoss.com) for apps
     - `noogle-microg-playful` keeps Play Store of your ROM, for ROMs without it see [playful build](#playful-variant)
+    - `noogle-microg-catfish` works without signature spoofing (no Vector/FakeGApps), see [catfish variant](#catfish-variant) for its limits
     - `noogle-unbundle` is optional and works on its own, install it as a separate module
 2. Install through Magisk app
 3. Reboot, microG permissions are granted automatically on first boot
 4. Ensure all permission boxes are checked in microG Self-Check
     - If not, click "Action" button next to module in Magisk to grant them again, or tap them in Self-Check
 5. Check signature spoofing status at the top of Self-Check
-    - If your ROM doesn't support signature spoofing, you must add it: [check troubleshooting](#signatures-are-not-correct)
+    - If your ROM doesn't support signature spoofing, you must add it: [check troubleshooting](#signatures-are-not-correct), or use Catfish
 6. Playful only: enable Google device registration in microG settings, Play Store doesn't work without it
 
 ## Build
@@ -51,6 +53,22 @@ Requires Linux, Mac or WSL on Windows with `bash`, `zip`, `curl` and `jq`. Optio
 - `scripts/build-noogle-microg.sh -P <apk>` builds playful variant with given Play Store APK, for ROMs without Play Store (e.g. LineageOS)
     - Play Store APK must support your Android version (newer ones need Android 12+)
     - This build is not updated by Magisk, as released playful builds don't contain Play Store
+
+### Catfish variant
+
+`scripts/build-noogle-microg.sh -c` builds catfish variant, it needs `zipalign` and `apksigner` (Android SDK build-tools). It replaces signatures of microG Services and Companion with signing blocks copied from Google's APKs. Android doesn't check contents of system apps against their signatures, so it reports Google's signature for them and no signature spoofing is needed. Idea from [microG_no_sigspoof](https://github.com/IsHacker003/microg_no_sigspoof) by IsHacker.
+
+1. Get the signing blocks into `signatures/` with `scripts/pull-signatures.sh`, once:
+    - From a device with stock Google apps through ADB (Noogle microG disabled)
+    - Or from APK files: `scripts/pull-signatures.sh <Play Services APK> <Play Store APK>`
+    - It checks the APKs are signed by Google, microG ones are rejected
+2. Run `scripts/build-noogle-microg.sh -c`
+
+- Signatures don't match the contents, so these APKs can't be installed as user apps
+    - microG updates from F-Droid repo can't be installed on top, updates come with the module
+    - Play Integrity Fix workaround (microG installed as user updates) isn't possible, microG may crash with it
+- Google's updates of Play Services pass as valid updates now, the module removes them on every boot
+- Tested on Android 15 emulator so far
 
 ### Install from PC
 
@@ -97,7 +115,7 @@ Stock Android and most other ROMs don't support it, so it has to be added with a
 
 Other ways you may find:
 - ROM patchers (Haystack, NanoDroid-patcher, Tingle) work properly only below Android 9
-- microG APKs with signature blocks copied from Google APKs don't need spoofing, but can't be updated as user apps
+- microG APKs with signature blocks copied from Google APKs don't need spoofing, but can't be updated as user apps, that's the [catfish variant](#catfish-variant)
 
 ### Play Store shows "Server error" or DF-DFERH-01
 Enable Google device registration in microG settings and restart Play Store.
@@ -140,13 +158,13 @@ Apps you updated stay installed as regular apps with their data, so you can unin
 ### Setup
 
 #### Do I need Vector and FakeGApps?
-Only if your ROM doesn't support signature spoofing, which is the case for every stock Android. Check the top of microG Self-Check, if spoofing is ticked, you don't need them.
+Only if your ROM doesn't support signature spoofing, which is the case for every stock Android. Check the top of microG Self-Check, if spoofing is ticked, you don't need them. `noogle-microg-catfish` doesn't need them either, see [catfish variant](#catfish-variant).
 
 #### Can I use the real Play Store instead of microG Companion?
 Yes, install `noogle-microg-playful`, it keeps Play Store of your ROM. You can switch between variants anytime by installing the other one over it. If your ROM has no Play Store, build the [playful variant](#playful-variant) with Play Store APK. Aurora Store works with both variants too.
 
 #### How do I update microG?
-Module updates with new microG versions come through Magisk app. You can also install microG updates from microG F-Droid repo on top of the module, or [build the module](#build) yourself, `scripts/pull-microg.sh` downloads the latest microG.
+Module updates with new microG versions come through Magisk app. Except for Catfish, you can also install microG updates from microG F-Droid repo on top of the module, or [build the module](#build) yourself, `scripts/pull-microg.sh` downloads the latest microG.
 
 ### Problems
 
@@ -183,5 +201,6 @@ Logcat may contain personal data like account names or nearby networks, check it
     - [Louis047](https://github.com/Louis047) and [Gorkido](https://github.com/Gorkido), for testing and helping others update microG manually
 - People in the [XDA thread](https://xdaforums.com/t/guide-magisk-module-universal-systemless-microg-installation-on-stock-android.4686426/) helping others and testing on their devices, especially:
     - bschtl, for keeping the thread alive with fixes and workarounds (Play Store swap, KernelSU metamodule)
-    - someone8, for the inspiration and research on privileged permissions and signature spoofing
+    - someone8, for the inspiration and research on privileged permissions and signature spoofing, and the pointer to microG without it
+    - IsHacker, for [microG_no_sigspoof](https://github.com/IsHacker003/microg_no_sigspoof), the idea behind the catfish variant
     - stormy1777, for the Play Integrity Fix crash report and workaround
