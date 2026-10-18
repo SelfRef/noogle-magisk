@@ -16,6 +16,7 @@ show_help() {
 	echo "  -y            Don't ask for confirmations"
 	echo "  -u            Noogle Unbundle instead of Noogle microG (build options below don't apply)"
 	echo "  -H            Noogle Unbundle Hard"
+	echo "  -F            Noogle Unbundle Fossify"
 	echo "  -d <dir>      Passed to build: destination partition [system|product|system_ext]"
 	echo "  -s <suffix>   Passed to build: suffix added to app directories and APK names"
 	echo "  -p            Passed to build: playful variant keeping device's Play Store"
@@ -24,14 +25,14 @@ show_help() {
 	exit "${1:-0}"
 }
 
-while getopts "hyuHd:s:pP:c" opt; do
+while getopts "hyuHFd:s:pP:c" opt; do
 	case $opt in
 		h) show_help ;;
 		y) skip_confirmations=true ;;
 		u) build_script=build-noogle-unbundle.sh ;;
-		H)
+		H | F)
 			build_script=build-noogle-unbundle.sh
-			unbundle_args=(-H)
+			unbundle_args=("-$opt")
 			;;
 		d|s|P) build_args+=("-$opt" "$OPTARG") ;;
 		p|c) build_args+=("-$opt") ;;

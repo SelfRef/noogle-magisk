@@ -53,7 +53,7 @@ echo "$notes" > dist/release-notes.md
 mv CHANGELOG.md.new CHANGELOG.md
 
 # One update file per module and variant, so Magisk never switches installed variant
-for module in microg microg-playful microg-catfish microg-playful-catfish unbundle unbundle-hard; do
+for module in microg microg-playful microg-catfish microg-playful-catfish unbundle unbundle-hard unbundle-fossify; do
 	cat > "update-$module.json" << EOF
 {
 	"version": "$version",
@@ -78,4 +78,7 @@ export REQUIRE_SIGNING=1
 ./scripts/build-noogle-microg.sh -p -c
 ./scripts/build-noogle-unbundle.sh
 ./scripts/build-noogle-unbundle.sh -H
+# Latest Fossify apps at release time, F-Droid updates them later
+./scripts/pull-fossify.sh
+./scripts/build-noogle-unbundle.sh -F
 echo "[P+] Release $version prepared"
