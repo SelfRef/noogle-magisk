@@ -27,8 +27,24 @@ jobs:
           base64 -d <<< "$GMS_SIGNATURE" > signatures/com.google.android.gms
           base64 -d <<< "$VENDING_SIGNATURE" > signatures/com.android.vending
 
+      # Pull scripts skip APKs already there and verified, so only new versions are downloaded
+      - name: Restore APKs
+        uses: actions/cache/restore@v4
+        with:
+          path: apk
+          key: apk-
+          restore-keys: apk-
+
       - name: Prepare release
         run: scripts/release.sh
+
+      # Key from contents, saved only when an APK changed (existing key is skipped with a warning)
+      - name: Save APKs
+        if: hashFiles('dist/release-notes.md') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: apk
+          key: apk-${{ hashFiles('apk/**') }}
 
       - name: Publish release
         if: hashFiles('dist/release-notes.md') != ''
