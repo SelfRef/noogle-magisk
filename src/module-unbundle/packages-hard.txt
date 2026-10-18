@@ -14,6 +14,8 @@
 #   (calls): not on emulator, kept after reports
 # - com.android.bluetooth: only a migration stub on Android 15, but Bluetooth itself on Android 11-12
 # - Overlays, APEX modules (can't be removed) and Noogle microG ones
+# Real device (Nothing Phone 1, Android 15): Fossify Clock alarm rang with sound but nothing on screen, it had no
+# notification permission (never opened). Phone and Messages get it with their roles, Clock and Calendar don't.
 # Without enabled keyboard Android switches to Speech Services voice input (no typing) and stays on it even after
 # Gboard comes back, so keyboard check counts only enabled ones.
 

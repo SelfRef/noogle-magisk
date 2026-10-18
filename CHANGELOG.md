@@ -1,4 +1,5 @@
 # Unreleased
+- Noogle Unbundle Fossify allows notifications for Fossify Clock and Calendar, alarms rang with nothing on screen to stop them
 
 # v2026.10.18.1
 - microG Services 0.3.17.252432, Companion 0.3.17.40226, Services Framework Proxy v0.1.0

@@ -35,4 +35,13 @@ for role in HOME:org.fossify.home DIALER:org.fossify.phone SMS:org.fossify.messa
 [I] ${role%%:*} role was empty, given to ${role#*:}"
 	fi
 done
+# Clock shows ringing alarm and Calendar reminders as notifications, without the permission alarm only rings with
+# nothing on screen. Phone and Messages get it with their roles. Choice made by user is kept.
+for package in org.fossify.clock org.fossify.calendar; do
+	state="$(dumpsys package "$package" | grep -m 1 'POST_NOTIFICATIONS: granted=')"
+	case $state in *granted=false*) ;; *) continue ;; esac
+	case $state in *USER_SET* | *USER_FIXED*) continue ;; esac
+	pm grant "$package" android.permission.POST_NOTIFICATIONS && log="$log
+[I] Allowed notifications for $package"
+done
 echo "${log:-[I] Nothing to fix}" | sed '/^$/d' > "$MODDIR/service.log"
