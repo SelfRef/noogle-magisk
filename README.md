@@ -9,6 +9,7 @@ Name | Description
 Noogle microG | Installs microG Services in place of Google Services (if present) and microG Companion in place of Play Store
 Noogle microG Playful | Same, but keeps Play Store
 Noogle microG Catfish | Same as Noogle microG, but microG carries Google's signatures, so it needs no signature spoofing
+Noogle microG Playful Catfish | Both: keeps Play Store and needs no signature spoofing
 Noogle Unbundle | Removes other Google apps from system, like Chrome, Gmail, Maps or YouTube (they stay installable from store)
 
 ## Install
@@ -28,6 +29,7 @@ It requires Magisk v29.0 or newer. If you don't have it yet, consult the [offici
     - `noogle-microg` replaces Play Store with microG Companion, use [Aurora Store](https://auroraoss.com) for apps
     - `noogle-microg-playful` keeps Play Store of your ROM, for ROMs without it see [playful build](#playful-variant)
     - `noogle-microg-catfish` works without signature spoofing (no Vector/FakeGApps), see [catfish variant](#catfish-variant) for its limits
+    - `noogle-microg-playful-catfish` keeps Play Store and works without signature spoofing
     - `noogle-unbundle` is optional and works on its own, install it as a separate module
 2. Install through Magisk app
 3. Reboot, microG permissions are granted automatically on first boot
@@ -62,7 +64,7 @@ Requires Linux, Mac or WSL on Windows with `bash`, `zip`, `curl` and `jq`. Optio
     - From a device with stock Google apps through ADB (Noogle microG disabled)
     - Or from APK files: `scripts/pull-signatures.sh <Play Services APK> <Play Store APK>`
     - It checks the APKs are signed by Google, microG ones are rejected
-2. Run `scripts/build-noogle-microg.sh -c`
+2. Run `scripts/build-noogle-microg.sh -c`, add `-p` or `-P <apk>` for playful catfish (only microG Services gets Google's signature, Play Store has its own)
 
 - Signatures don't match the contents, so these APKs can't be installed as user apps
     - microG updates from F-Droid repo can't be installed on top, updates come with the module
