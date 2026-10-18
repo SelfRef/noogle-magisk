@@ -14,9 +14,9 @@ Noogle Unbundle | Removes other Google apps from system, comes in [2 variants](#
 Variant | Play Store | Signature spoofing | microG updates from F-Droid | Play Integrity Fix
 :--- | --- | --- | --- | ---
 `noogle-microg` | Replaced by microG Companion | Needed | Yes | Yes
-`noogle-microg-playful` | Kept <sup>[*](#playful-variant)</sup> | Needed | Yes | Yes
+`noogle-microg-playful` | Kept [*](#playful-variant) | Needed | Yes | Yes
 `noogle-microg-catfish` | Replaced by microG Companion | Not needed | No | microG may crash
-`noogle-microg-playful-catfish` | Kept <sup>[*](#playful-variant)</sup> | Not needed | No | microG may crash
+`noogle-microg-playful-catfish` | Kept [*](#playful-variant) | Not needed | No | microG may crash
 
 **Playful or not:** Playful keeps Play Store of your ROM. The others replace it with microG Companion, which only provides Play Store services to apps, use [Aurora Store](https://auroraoss.com) to get apps. You can switch variants anytime by installing the other one over it.
 
