@@ -1,4 +1,7 @@
 # Unreleased
+
+# v2026.10.18
+- microG Services 0.3.17.252432, Companion 0.3.17.40226, Services Framework Proxy v0.1.0
 - New Noogle microG Catfish variant, microG carries Google's signatures, so it works without signature spoofing (no Vector/FakeGApps), but can't be updated as user app (idea from [microG_no_sigspoof](https://github.com/IsHacker003/microg_no_sigspoof) by IsHacker)
 - New Noogle microG Playful Catfish variant, keeps Play Store and works without signature spoofing
 - New Noogle Unbundle Hard variant, removes phone basics, accessibility, Google system components and Pixel extras too, apps with no replacement installed (launcher, phone, SMS, keyboard, camera) are kept
