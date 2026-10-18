@@ -1,6 +1,9 @@
 # Google apps removed from system, all installable from store. Kept on purpose: phone basics (Dialer, Contacts,
 # Messages, Gboard, Pixel Launcher, Clock, Camera, Setup), accessibility (TalkBack, Speech Services), system
 # components (Android System Intelligence, Digital Wellbeing, Android Auto, WebView) and Noogle microG ones.
+# Ones on Android 15 emulator image were removed one by one with no side effects (see packages-hard.txt).
+# Apps coming back after uninstalling the module start with fresh data. With microG some crash on start with
+# "Unable to find a default SSL provider" (seen with Gmail, YouTube, Messages), it's microG, not the module.
 com.android.chrome                          # Chrome
 com.google.android.apps.adm                 # Find My Device
 com.google.android.apps.bard                # Gemini

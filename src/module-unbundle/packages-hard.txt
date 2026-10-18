@@ -1,0 +1,117 @@
+# Hard variant removes these too: phone basics, Google system components and Pixel extras. Second column is a role
+# the app may be the only one for, it's kept until another app for it is installed (keyboards only when enabled).
+#
+# Each Google app on Android 15 emulator image was removed one by one and checked (boot, crashes, ANRs, Settings
+# pages and entries, share sheet, file/sound pickers, camera, dialer, home, network, keyboard). Kept on purpose:
+# - Bootloop: GoogleExtShared (com.google.android.ext.shared), ModuleMetadata, Package Installer
+# - Network Stack: no network at all
+# - DocumentsUI: no file picker, apps can't open files
+# - Sound picker: no ringtone and alarm sound picker
+# - Settings search (com.google.android.settings.intelligence): search bar disappears from Settings
+# - Captive portal login: hotel/airport Wi-Fi login stops working
+# - ConfigUpdater (security config updates), Emergency Info, Satellite SOS: no visible change, but needed
+# - Setup Wizard (breaks account sync), Device Health Services (breaks battery settings), carrier and IMS services
+#   (calls): not on emulator, kept after reports
+# - com.android.bluetooth: only a migration stub on Android 15, but Bluetooth itself on Android 11-12
+# - Overlays, APEX modules (can't be removed) and Noogle microG ones
+# Without enabled keyboard Android switches to Speech Services voice input (no typing) and stays on it even after
+# Gboard comes back, so keyboard check counts only enabled ones.
+
+# Phone basics
+com.google.android.dialer           dialer  # Phone
+com.google.android.apps.messaging   sms     # Messages
+com.google.android.inputmethod.latin ime    # Gboard
+com.google.android.inputmethod.japanese ime # Gboard Japanese
+com.google.android.inputmethod.korean ime   # Gboard Korean
+com.google.android.inputmethod.pinyin ime   # Gboard Pinyin
+com.google.android.apps.inputmethod.hindi ime # Gboard Hindi
+com.google.android.apps.handwriting.ime ime # Handwriting Input
+com.google.android.launcher         home    # Google Now Launcher
+com.google.android.deskclock        alarm   # Clock (UAD reports alarms may go silent on some phones, not seen on emulator)
+com.google.android.contacts                 # Contacts
+com.google.android.calculator               # Calculator
+com.google.android.apps.photosgo            # Gallery
+com.google.android.gallery3d                # Gallery (old)
+com.google.android.apps.pdfviewer           # PDF Viewer
+com.google.android.markup                   # Markup
+
+# Accessibility
+com.google.android.marvin.talkback          # Accessibility Suite (TalkBack)
+com.google.android.tts                      # Speech Services
+com.google.android.apps.speechservices      # Speech Services (Go)
+com.google.android.apps.accessibility.voiceaccess # Voice Access
+com.google.android.accessibility.soundamplifier # Sound Amplifier
+com.google.android.accessibility.switchaccess # Switch Access
+com.google.audio.hearing.visualization.accessibility.scribe # Live Transcribe
+
+# Google system components
+com.google.android.as                       # Android System Intelligence
+com.google.android.as.oss                   # Private Compute Services
+com.google.android.aicore                   # AICore (Gemini Nano)
+com.google.android.apps.wellbeing           # Digital Wellbeing (its Settings entry disappears)
+com.google.android.projection.gearhead      # Android Auto
+com.google.android.gms.supervision          # Family Link parental controls
+com.google.android.odad                     # Play Protect Service
+com.google.android.syncadapters.calendar    # Google Calendar sync
+com.google.android.syncadapters.contacts    # Google Contacts sync
+com.google.android.backuptransport          # Google Backup Transport
+com.google.android.gms.location.history     # Location History
+com.google.android.gsf.login                # Google Account Manager (old)
+com.google.android.tag                      # NFC tags
+com.google.android.printservice.recommendation # Print Service Recommendation
+com.google.mainline.adservices              # Play system update version info, updates need real Play Services
+com.google.mainline.telemetry               # Play system update version info
+
+# Setup, feedback and diagnostics
+com.google.android.apps.restore             # Restore from backup
+com.google.android.onetimeinitializer       # One Time Init
+com.google.android.partnersetup             # Partner Setup
+com.google.android.apps.setupwizard.searchselector # Search engine selector
+com.google.android.apps.work.oobconfig      # Device Setup (enterprise)
+com.google.android.feedback                 # Feedback
+com.google.android.apps.helprtc             # Support Services
+
+# Other store apps
+com.google.android.apps.authenticator2      # Authenticator
+com.google.android.apps.kids.familylink     # Family Link
+com.google.android.apps.youtube.creator     # YouTube Studio
+com.google.android.apps.tycho               # Google Fi
+com.google.android.apps.wearables.maestro.companion # Pixel Buds
+com.google.android.apps.photos.scanner      # PhotoScan
+com.google.android.apps.navlite             # Maps GPS
+com.google.android.street                   # Street View
+com.google.earth                            # Earth
+com.google.chromeremotedesktop              # Chrome Remote Desktop
+com.niksoftware.snapseed                    # Snapseed
+
+# Pixel firmware only. They are more tied to the system there (Settings entries, launcher integration), delete this
+# section before building to keep them.
+com.google.android.apps.nexuslauncher home  # Pixel Launcher (without other launcher only boot screen of Settings is left)
+com.google.android.GoogleCamera     camera  # Pixel Camera
+com.google.android.apps.wallpaper           # Wallpaper & style (its Settings entry disappears)
+com.google.android.apps.wallpaper.nexus     # Pixel wallpapers (stub on emulator)
+com.google.android.apps.customization.pixel # Pixel Themes (stub on emulator)
+com.google.android.apps.wallpaper.pixel     # Pixel Wallpapers
+com.google.android.apps.aiwallpapers        # AI Wallpapers
+com.google.pixel.livewallpaper              # Live Wallpapers
+com.google.android.wallpaper.effects        # Wallpaper Effects
+com.google.android.avatarpicker             # Avatar Picker
+com.google.android.pixel.avatarpicker       # Avatar Picker (Pixel)
+com.google.android.apps.safetyhub           # Personal Safety (crash detection, emergency sharing)
+com.google.android.apps.security.securityhub # Security Hub
+com.google.android.apps.pixelmigrate        # Data Transfer Tool
+com.google.android.apps.tips                # Pixel Tips
+com.google.android.apps.pixel.support       # Pixel Troubleshooting
+com.google.android.apps.diagnosticstool     # Diagnostic Tool
+com.google.android.apps.internal.betterbug  # BetterBug
+com.google.android.apps.betterbug           # Android Beta Feedback
+com.google.android.apps.carrier.log         # Carrier App Logging
+com.google.android.apps.cbrsnetworkmonitor  # CBRS Network Monitor
+com.google.android.hardwareinfo             # Hardware Info
+com.google.android.apps.dreamliner          # Pixel Stand
+com.google.android.dreamlinerupdater        # Pixel Stand updater
+com.google.android.apps.pixel.creativeassistant # Creative Assistant
+com.google.android.apps.gcs                 # Pixel connectivity services (VPN by Google)
+com.google.android.apps.scone               # Adaptive Connectivity
+com.google.android.apps.privacy.wildlife    # VPN by Google One
+com.google.android.apps.pixel.subzero       # Daily Hub
