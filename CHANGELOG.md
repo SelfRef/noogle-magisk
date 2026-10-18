@@ -1,4 +1,5 @@
 # Unreleased
+- Switching to Noogle microG Catfish removes microG updates installed from F-Droid, they hid Catfish microG and needed signature spoofing again
 
 # v2026.10.18
 - microG Services 0.3.17.252432, Companion 0.3.17.40226, Services Framework Proxy v0.1.0

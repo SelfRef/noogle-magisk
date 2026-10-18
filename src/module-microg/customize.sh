@@ -19,7 +19,12 @@ fi
 
 . "$MODPATH/common.sh"
 
-remove_package_updates google
+# Catfish APKs can't be updated, microG updates signed by microG would hide them and need signature spoofing again
+if [ "$catfish" = true ]; then
+	remove_package_updates all
+else
+	remove_package_updates google
+fi
 
 # Data breaks when an app switches between Google's and microG's version (e.g. newer database versions), so clear
 # it on first boot. Module updates keep it. Services Framework follows Services, microG's one can't be detected.
