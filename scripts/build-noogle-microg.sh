@@ -58,15 +58,11 @@ while getopts "hd:s:pP:c" opt; do
 		*) show_help 1 ;;
 	esac
 done
-if [ -n "$catfish" ]; then
-	[ -z "$variant" ] || { echo "[C] Catfish can't be combined with Playful yet"; exit 1; }
-	variant=catfish
-fi
 
 # Date based version, Magisk offers update when versionCode grows. Release script sets them for same day releases.
 module_version="${MODULE_VERSION:-v$(date -u +%Y.%m.%d)}"
 module_version_code="${MODULE_VERSION_CODE:-$(date -u +%Y%m%d)00}"
-module_filename="noogle-microg${variant:+-$variant}${playstore_apk:+-playstore}-$module_version.zip"
+module_filename="noogle-microg${variant:+-$variant}${catfish:+-catfish}${playstore_apk:+-playstore}-$module_version.zip"
 
 echo "[P] Building module noogle-microg $module_version..."
 start=$SECONDS
@@ -115,10 +111,13 @@ fi
 
 # Catfish: Services and Companion get signing blocks copied from Google's APKs (see pull-signatures.sh). Android doesn't
 # check system app contents against them, so they pass as Google's apps, but can't be installed as user apps.
-if [ "$variant" = catfish ]; then
+if [ -n "$catfish" ]; then
 	zipalign="$(command -v zipalign || ls "${ANDROID_HOME:-$HOME/Android/Sdk}"/build-tools/*/zipalign 2> /dev/null | sort -V | tail -1)"
 	[ -n "$zipalign" ] || { echo "[C] zipalign (Android SDK build-tools) not found, required for Catfish"; exit 1; }
-	for pkg in com.google.android.gms com.android.vending; do
+	# Playful has no Companion, real Play Store (bundled or device's) keeps its own signature
+	catfish_packages=com.google.android.gms
+	[ "$variant" = playful ] || catfish_packages="$catfish_packages com.android.vending"
+	for pkg in $catfish_packages; do
 		app="${apps[$pkg]}$suffix"
 		apk="$module_dir/$destination_dir/priv-app/$app/$app.apk"
 		block="$signatures_dir/$pkg"
@@ -165,9 +164,10 @@ if [ "$variant" = playful ]; then
 		sed -i 's/^packages=.*/packages="com.google.android.gms com.google.android.gsf"/' "$module_dir/common.sh"
 		sed -i 's/update-microg.json/update-microg-playful.json/' "$module_dir/module.prop"
 	fi
-elif [ "$variant" = catfish ]; then
+fi
+if [ -n "$catfish" ]; then
 	sed -i 's/^name=.*/& Catfish/; s/^description=.*/&, no signature spoofing needed/' "$module_dir/module.prop"
-	sed -i 's/update-microg.json/update-microg-catfish.json/' "$module_dir/module.prop"
+	sed -i 's/\(update-microg[a-z-]*\)\.json/\1-catfish.json/' "$module_dir/module.prop"
 	sed -i 's/^catfish=.*/catfish=true/' "$module_dir/common.sh"
 fi
 

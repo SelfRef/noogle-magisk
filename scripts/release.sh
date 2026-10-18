@@ -53,7 +53,7 @@ echo "$notes" > dist/release-notes.md
 mv CHANGELOG.md.new CHANGELOG.md
 
 # One update file per module and variant, so Magisk never switches installed variant
-for module in microg microg-playful microg-catfish unbundle; do
+for module in microg microg-playful microg-catfish microg-playful-catfish unbundle; do
 	cat > "update-$module.json" << EOF
 {
 	"version": "$version",
@@ -75,5 +75,6 @@ export REQUIRE_SIGNING=1
 ./scripts/build-noogle-microg.sh
 ./scripts/build-noogle-microg.sh -p
 ./scripts/build-noogle-microg.sh -c
+./scripts/build-noogle-microg.sh -p -c
 ./scripts/build-noogle-unbundle.sh
 echo "[P+] Release $version prepared"
