@@ -7,7 +7,9 @@ Magisk modules for removing/replacing Google applications on stock Android 11-17
 Name | Description
 --- | ---
 Noogle microG | Installs microG Services in place of Google Services (if present), comes in [4 variants](#which-noogle-microg-to-choose)
-Noogle Unbundle | Removes other Google apps from system, comes in [2 variants](#which-noogle-unbundle-to-choose)
+Noogle Unbundle | Removes other Google apps from system, comes in [3 variants](#which-noogle-unbundle-to-choose)
+
+Modules are independent, use one or both. Variants of a module replace each other, switch anytime by installing another variant over the installed one, the installer brings back or removes apps as needed.
 
 ### Which Noogle microG to choose
 
@@ -18,10 +20,10 @@ Variant | Play Store | Signature spoofing | microG updates from F-Droid | Play I
 `noogle-microg-catfish` | Replaced by microG Companion | Not needed | No | microG may crash
 `noogle-microg-playful-catfish` | Kept [*](#playful-variant) | Not needed | No | microG may crash
 
-**Playful or not:** Playful keeps Play Store of your ROM. The others replace it with microG Companion, which only provides Play Store services to apps, use [Aurora Store](https://auroraoss.com) to get apps. You can switch variants anytime by installing the other one over it.
+**Playful or not:** Playful keeps Play Store of your ROM. The others replace it with microG Companion, which only provides Play Store services to apps, use [Aurora Store](https://auroraoss.com) to get apps.
 
 **Catfish or not:** Regular variants need your ROM to report Google's signature for microG ([signature spoofing](#signatures-are-not-correct)), which stock Android can't do without Vector and FakeGApps. Catfish microG carries signing blocks copied from Google's APKs instead. Android doesn't check contents of system apps against their signatures, so it reports Google's signature without any spoofing. Idea from [microG_no_sigspoof](https://github.com/IsHacker003/microg_no_sigspoof) by IsHacker. The downsides:
-- Signatures don't match the contents, so Catfish APKs can't be installed as user apps: microG updates come only with the module, and Play Integrity Fix workaround (microG installed as user updates) isn't possible
+- Signatures don't match the contents, so Catfish APKs can't be installed as user apps: microG updates come only with the module (switching to Catfish removes ones installed from F-Droid), and Play Integrity Fix workaround (microG installed as user updates) isn't possible
 - Google's updates of Play Services pass as valid updates, the module removes them on every boot
 - Tested on Android 15 emulator so far
 
@@ -35,7 +37,7 @@ Variant | Removes | Kept | List
 `noogle-unbundle-hard` | Same, plus phone basics (Pixel Launcher, Phone, Messages, Gboard, Camera, Clock, Contacts...), accessibility (TalkBack, Speech Services), Google system components (Android System Intelligence, Digital Wellbeing, Android Auto...) and Pixel extras | Setup Wizard, Device Health Services, Network Stack, file and sound pickers, carrier services and others that break the phone when removed ([tested](src/module-unbundle/packages-hard.txt)) | [packages.txt](src/module-unbundle/packages.txt) + [packages-hard.txt](src/module-unbundle/packages-hard.txt)
 `noogle-unbundle-fossify` | Same as Hard, and installs [Fossify](https://fossify.org) apps as replacements | Same as Hard | Same as Hard
 
-All work on their own and together with any Noogle microG variant, they never remove apps microG replaces. You can switch variants anytime by installing the other one over it, apps removed only by Hard come back.
+They never remove apps Noogle microG replaces. Switching from Hard or Fossify to a lighter variant brings back apps removed only by them.
 
 **Fossify:** installs Launcher, Phone, Messages, Keyboard, Contacts, Gallery, Calculator, Clock, Camera, File Manager, Calendar, Notes and Voice Recorder as system apps. They are the versions from F-Droid (Fossify's own reproducible builds), so F-Droid updates them, updates stay installed even after removing the module. On every boot the module switches to Fossify Keyboard when the keyboard in use is gone (also on lock screen, so you can type your password), and gives empty home, phone and SMS roles to Fossify apps. Other Fossify apps (Music Player, Paint, Documents...) are in F-Droid.
 
