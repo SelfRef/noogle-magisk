@@ -215,7 +215,7 @@ Open a [bug report](https://github.com/SelfRef/noogle-magisk/issues/new?template
 - Noogle microG log of last boot: `adb shell su -c cat /data/adb/modules/noogle-microg/service.log`
 - For crashes, logcat right after the crash: `adb logcat -d -b crash,main > logcat.txt`
 
-Logcat may contain personal data like account names or nearby networks, check it before attaching. Questions are welcome in [Discussions](https://github.com/SelfRef/noogle-magisk/discussions).
+Logcat may contain personal data like account names or nearby networks, check it before attaching. Questions are welcome in [Issues](https://github.com/SelfRef/noogle-magisk/issues).
 
 ## Credits
 
