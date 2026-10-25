@@ -43,10 +43,16 @@ microg="$(sed -n 's/^\([^ ]*\) version \(.*\)/\1 \2/p' microg.lock | sed '
 notes="- $microg${unreleased:+
 $unreleased}"
 
+# Text above Unreleased heading (support links) stays on top of CHANGELOG.md and ends release notes
+header="$(sed '/^# Unreleased$/,$d' CHANGELOG.md)"
+
 mkdir -p dist
-echo "$notes" > dist/release-notes.md
+echo "$notes${header:+
+
+$header}" > dist/release-notes.md
 # Unreleased heading stays on top for next changes
 {
+	[ -z "$header" ] || printf '%s\n\n' "$header"
 	printf '# Unreleased\n\n# %s\n%s\n\n' "$version" "$notes"
 	sed '1,/^# v/{/^# v/!d}' CHANGELOG.md
 } > CHANGELOG.md.new

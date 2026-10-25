@@ -1,4 +1,7 @@
+> Enjoying Noogle? Support its development on [Ko-fi](https://ko-fi.com/N5E229GJPZ), [GitHub Sponsors](https://github.com/sponsors/SelfRef) or [Liberapay](https://liberapay.com/SelfRef/donate).
+
 # Unreleased
+- Installer and Action button show links to support development
 
 # v2026.10.18.2
 - microG Services 0.3.17.252432, Companion 0.3.17.40226, Services Framework Proxy v0.1.0

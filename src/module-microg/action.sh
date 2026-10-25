@@ -14,3 +14,9 @@ grant_microg_permissions
 echo
 echo
 echo "[I] Done fixing module."
+
+echo
+echo "[I] Enjoying Noogle? Support development:"
+echo "    ko-fi.com/selfref"
+echo "    github.com/sponsors/SelfRef"
+echo "    liberapay.com/SelfRef"

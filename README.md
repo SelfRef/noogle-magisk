@@ -2,6 +2,12 @@
 
 Magisk modules for removing/replacing Google applications on stock Android 11-17.
 
+Noogle is developed in my free time. If it helps you get rid of Google, consider supporting its development:
+
+[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/N5E229GJPZ)
+[![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-EA4AAA?style=for-the-badge&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/SelfRef)
+[![Donate using Liberapay](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/SelfRef/donate)
+
 ## Modules
 
 Name | Description

@@ -104,3 +104,9 @@ else
 fi
 ui_print "[I] Apps removed by installer below (Remove target), user apps keep their data"
 [ -z "$kept" ] || ui_print "[W] Install replacements for kept apps and install the module again to remove them"
+
+ui_print ""
+ui_print "[I] Enjoying Noogle? Support development:"
+ui_print "    ko-fi.com/selfref"
+ui_print "    github.com/sponsors/SelfRef"
+ui_print "    liberapay.com/SelfRef"

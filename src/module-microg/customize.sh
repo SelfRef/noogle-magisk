@@ -130,3 +130,9 @@ set_perm_recursive "$MODPATH/$gms_dir/lib" 0 0 0755 0644
 
 ui_print ""
 ui_print "[I] microG permissions are granted on first boot, use Action button if they get lost"
+
+ui_print ""
+ui_print "[I] Enjoying Noogle? Support development:"
+ui_print "    ko-fi.com/selfref"
+ui_print "    github.com/sponsors/SelfRef"
+ui_print "    liberapay.com/SelfRef"
