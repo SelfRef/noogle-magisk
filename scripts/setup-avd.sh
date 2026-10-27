@@ -257,6 +257,7 @@ own_image() {
 		cp -as "$sdk_dir/$shared_image/." "$image_dir"
 		rm -f "$image_dir"/ramdisk.img*
 		cp "$stock_ramdisk" "$ramdisk"
+		cp "${stock_ramdisk}$([ -f "$stock_ramdisk.stock" ] && echo .stock)" "$ramdisk.stock"
 		sed -i "s|^image.sysdir.1=.*|image.sysdir.1=$image_dir/|" "$avd_dir/config.ini"
 		echo "[P+] Own system image in $image_dir"
 	fi
@@ -264,6 +265,14 @@ own_image() {
 		mv "$stock_ramdisk.stock" "$stock_ramdisk"
 		rm -f "$stock_ramdisk.backup"
 		echo "[I] Shared system image back to stock"
+	fi
+	# An update of the shared image (sdkmanager) brings new files, and a ramdisk the old rooted one doesn't boot with
+	cp -asn "$sdk_dir/$shared_image/." "$image_dir"
+	find "$image_dir" -xtype l -delete
+	if ! cmp -s "$ramdisk.stock" "$stock_ramdisk"; then
+		echo "[I] Shared system image updated, its new ramdisk gets rooted"
+		cp "$stock_ramdisk" "$ramdisk.stock"
+		cp "$stock_ramdisk" "$ramdisk"
 	fi
 }
 
@@ -275,7 +284,7 @@ unroot_image() {
 		mv "$stock_ramdisk.stock" "$stock_ramdisk"
 	fi
 	rm -f "$stock_ramdisk.backup" "$ramdisk.backup"
-	[ -d "$image_dir" ] && cp "$stock_ramdisk" "$ramdisk"
+	[ -d "$image_dir" ] && cp "$stock_ramdisk" "$ramdisk" && cp "$stock_ramdisk" "$ramdisk.stock"
 	return 0
 }
 
