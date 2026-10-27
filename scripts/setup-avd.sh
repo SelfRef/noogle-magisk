@@ -12,7 +12,8 @@
 # - Google Play image is a user build: no adb root, Play Services preinstalled like on stock phones.
 # - Only one adb version may exist, emulator runs SDK platform-tools adb on its own. Mismatch restarts adb server,
 #   devices go offline mid-transfer and rootAVD silently ends up without patched ramdisk.
-# - rootAVD patches the system image shared by all AVDs of that Android version, not the AVD itself.
+# - rootAVD patches the system image it's given, so each AVD gets its own (<avd>.avd/system-image: links to
+#   the shared one in the SDK, with a ramdisk of its own). The shared image stays stock for other AVDs and projects.
 # - Magisk su prompt is hidden from uiautomator, it can't be tapped, but Back key denies it (saved like timeout).
 #   Other Magisk UI can be tapped (see tap_node). Magisk caches su policies, DB edits don't apply immediately.
 # - Magisk additional setup puts su in place right after OK, but reboots a few seconds later.
@@ -115,10 +116,14 @@ if [ "$image" = default ]; then
 	avd_name="${avd_name:-noogle-$android_version-aosp}"
 fi
 avd_name="${avd_name:-noogle-$android_version}"
-image_path="system-images/android-$api/$image/x86_64"
-image_pkg="$(echo "$image_path" | tr '/' ';')"
-ramdisk="$sdk_dir/$image_path/ramdisk.img"
+shared_image="system-images/android-$api/$image/x86_64"
+image_pkg="$(echo "$shared_image" | tr '/' ';')"
+stock_ramdisk="$sdk_dir/$shared_image/ramdisk.img"
 avd_dir="${ANDROID_AVD_HOME:-$HOME/.android/avd}/$avd_name.avd"
+# The AVD's own image, which rootAVD patches; rootAVD takes it relative to the SDK
+image_dir="$avd_dir/system-image"
+image_path="$(realpath -m --relative-to="$sdk_dir" "$image_dir")"
+ramdisk="$image_dir/ramdisk.img"
 magisk_apk="${XDG_CACHE_HOME:-$HOME/.cache}/noogle-magisk-$avd_name.apk"
 rootavd_log="$log_dir/rootavd-$avd_name.log"
 
@@ -200,7 +205,7 @@ install_deps() {
 		echo "[P+][$((SECONDS - start))s] Installed $zip_name"
 	fi
 
-	if [ ! -f "$ramdisk" ] || [ ! -x "$sdk_dir/emulator/emulator" ]; then
+	if [ ! -f "$stock_ramdisk" ] || [ ! -x "$sdk_dir/emulator/emulator" ]; then
 		echo "[P] Installing emulator and $image_pkg..."
 		start=$SECONDS
 		yes | sdkmanager --licenses > /dev/null
@@ -242,24 +247,40 @@ create_avd() {
 	echo "[P+] AVD created"
 }
 
-# rootAVD patches the shared system image ramdisk. Its own backup (ramdisk.img.backup) gets lost or broken
-# when rooting crashes, so a pristine copy is kept as ramdisk.img.stock
-unroot_image() {
-	if [ -f "$ramdisk.stock" ]; then
-		cp "$ramdisk.stock" "$ramdisk"
-	elif [ -f "$ramdisk.backup" ]; then
-		mv "$ramdisk.backup" "$ramdisk"
+# Gives the AVD its own image: links to the shared one, with its own copy of the ramdisk. Earlier setups rooted
+# the shared image and kept its stock ramdisk as ramdisk.img.stock: the rooted one moves here, the shared one
+# goes back to stock.
+own_image() {
+	if [ ! -d "$image_dir" ]; then
+		echo "[P] Giving AVD $avd_name its own system image..."
+		mkdir -p "$image_dir"
+		cp -as "$sdk_dir/$shared_image/." "$image_dir"
+		rm -f "$image_dir"/ramdisk.img*
+		cp "$stock_ramdisk" "$ramdisk"
+		sed -i "s|^image.sysdir.1=.*|image.sysdir.1=$image_dir/|" "$avd_dir/config.ini"
+		echo "[P+] Own system image in $image_dir"
 	fi
-	rm -f "$ramdisk.backup"
+	if [ -f "$stock_ramdisk.stock" ]; then
+		mv "$stock_ramdisk.stock" "$stock_ramdisk"
+		rm -f "$stock_ramdisk.backup"
+		echo "[I] Shared system image back to stock"
+	fi
+}
+
+# rootAVD keeps its own backup (ramdisk.img.backup), which gets lost or broken when rooting crashes, so the
+# shared image's ramdisk is the stock one to go back to
+unroot_image() {
+	# Rooted by an earlier setup: the shared image back to stock first
+	if [ -f "$stock_ramdisk.stock" ]; then
+		mv "$stock_ramdisk.stock" "$stock_ramdisk"
+	fi
+	rm -f "$stock_ramdisk.backup" "$ramdisk.backup"
+	[ -d "$image_dir" ] && cp "$stock_ramdisk" "$ramdisk"
+	return 0
 }
 
 root_image() {
-	if [ -f "$ramdisk.backup" ] && [ ! -f "$ramdisk.stock" ]; then
-		cp "$ramdisk.backup" "$ramdisk.stock"
-	elif [ ! -f "$ramdisk.stock" ]; then
-		cp "$ramdisk" "$ramdisk.stock"
-	fi
-	if ! cmp -s "$ramdisk" "$ramdisk.stock"; then
+	if ! cmp -s "$ramdisk" "$stock_ramdisk"; then
 		echo "[I] Image already rooted"
 		return
 	fi
@@ -297,7 +318,7 @@ root_image() {
 		for _ in $(seq 60); do is_running && sleep 1; done
 		kill_emulator > /dev/null
 		# rootAVD ignores failed pulls, leaving no or unpatched ramdisk
-		[ -f "$ramdisk" ] && ! cmp -s "$ramdisk" "$ramdisk.stock" && break
+		[ -f "$ramdisk" ] && ! cmp -s "$ramdisk" "$stock_ramdisk" && break
 		unroot_image
 		echo "[P!] rootAVD failed to patch ramdisk, stock one restored"
 		if [ $attempt = 3 ]; then
@@ -455,6 +476,7 @@ case $action in
 		[ "$SKIP_DEPS" = 1 ] || install_deps
 		[ "$ONLY_DEPS" = 1 ] && exit 0
 		create_avd
+		own_image
 		root_image
 		start_emulator -no-snapshot-load
 		magisk_additional_setup
