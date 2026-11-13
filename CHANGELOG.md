@@ -2,6 +2,9 @@
 
 # Unreleased
 
+# v2026.11.13
+- microG Services 0.3.18.252432, Companion 0.3.18.40226, Services Framework Proxy v0.1.0
+
 # v2026.10.26
 - microG Services 0.3.17.252432, Companion 0.3.17.40226, Services Framework Proxy v0.1.0
 - Installer and Action button show links to support development

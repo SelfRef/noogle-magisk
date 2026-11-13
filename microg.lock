@@ -1,4 +1,4 @@
-com.google.android.gms version 0.3.17.252432
+com.google.android.gms version 0.3.18.252432
 com.google.android.gms permission android.permission.ACCESS_ADSERVICES_AD_ID
 com.google.android.gms permission android.permission.ACCESS_ADSERVICES_ATTRIBUTION
 com.google.android.gms permission android.permission.ACCESS_ADSERVICES_TOPICS
@@ -64,7 +64,7 @@ com.google.android.gms permission com.google.android.gms.nearby.exposurenotifica
 com.google.android.gms permission com.google.android.gms.permission.AD_ID
 com.google.android.gms permission com.google.android.gtalkservice.permission.GTALK_SERVICE
 com.google.android.gms permission org.microg.gms.STATUS_BROADCAST
-com.android.vending version 0.3.17.40226
+com.android.vending version 0.3.18.40226
 com.android.vending permission android.permission.ACCESS_COARSE_LOCATION
 com.android.vending permission android.permission.ACCESS_NETWORK_STATE
 com.android.vending permission android.permission.DELETE_PACKAGES
